@@ -49,7 +49,7 @@ def generate_dataset(section_ids, action, context):
             print(f"Error processing chunk {chunk_index + 1}/{number_of_chunks}: {e}")
 
     # Build and save JSON and HTML manifests
-    build_manifests(s3_client, context["bucket_name"], context["job_id"], number_of_chunks)
+    build_manifests(s3_client, context, number_of_chunks)
 
     # Stop Spark context
     sc.stop()
@@ -85,10 +85,10 @@ def save_chunk_to_s3(chunk_data, columns, s3_client, target_prefix, chunk_index)
     s3_client.put_object(Bucket="torus-datasets-prod", Key=chunk_key, Body=csv_buffer.getvalue())
 
 
-def build_manifests(s3_client, bucket_name, job_id, number_of_chunks):
+def build_manifests(s3_client, context, number_of_chunks):
     """Build HTML and JSON manifests."""
-    build_html_manifest(s3_client, bucket_name, job_id, number_of_chunks)
-    build_json_manifest(s3_client, bucket_name, job_id, number_of_chunks)
+    build_html_manifest(s3_client, context, number_of_chunks)
+    build_json_manifest(s3_client, context, number_of_chunks)
 
    
 
