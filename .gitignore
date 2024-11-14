@@ -1,0 +1,110 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+# Usually these files are written by a python script from a template
+# before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+*.cover
+coverage.xml
+*.stages
+
+# Jupyter Notebook files
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# celery beat schedule file
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+*.env
+.env.*
+
+# Mypy
+.mypy_cache/
+
+# Pyre type checker
+.pyre/
+
+# Profiling data
+.prof
+
+# pyright
+*.pyrightconfig.json
+
+# Editor directories and files
+.vscode/
+.idea/
+
+# MacOS system files
+.DS_Store
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+*.temp
+*.tmp
+*.swp
+*.swo
+~*
+
+# Logs and local debugging files
+*.log
+*.out
+*.err
+debug.log
+
+# Other application-specific files
+*.sqlite3
+*.pkl
+*.h5
+*.db
+*.csv
+*.tsv
+*.ckpt
