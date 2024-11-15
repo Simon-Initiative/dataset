@@ -8,7 +8,7 @@ import os
 import argparse
 
 from dataset.keys import list_keys_from_inventory
-from dataset.utils import parallel_map
+from dataset.utils import parallel_map, prune_fields
 from dataset.manifest import build_html_manifest, build_json_manifest
 from dataset.event_registry import get_event_config
 
@@ -27,6 +27,12 @@ def generate_dataset(section_ids, action, context):
     chunk_size = context["chunk_size"]
     event_jsonl_processor, columns = get_event_config(action)
 
+    # Create a list of indices of field to remove, to honor the exclude_fields parameter
+    column_indices_map = {column: index for index, column in enumerate(columns)}
+    excluded_indices = [column_indices_map[column] for column in context["exclude_fields"]]
+    excluded_indices.sort(reverse=True)
+    columns = prune_fields(columns, excluded_indices)
+
     # Retrieve matching keys from S3 inventory
     keys = list_keys_from_inventory(section_ids, action, source_bucket, inventory_bucket)
     number_of_chunks = calculate_number_of_chunks(len(keys), chunk_size)
@@ -39,7 +45,7 @@ def generate_dataset(section_ids, action, context):
     for chunk_index, chunk_keys in enumerate(chunkify(keys, chunk_size)):
         try:
             # Process keys in parallel
-            chunk_data = parallel_map(sc, source_bucket, chunk_keys, event_jsonl_processor, context)
+            chunk_data = parallel_map(sc, source_bucket, chunk_keys, event_jsonl_processor, context, excluded_indices)
             
             # Save the collected results as a CSV file to S3
             save_chunk_to_s3(chunk_data, columns, s3_client, target_prefix, chunk_index)

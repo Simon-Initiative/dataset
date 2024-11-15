@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Check if two arguments are provided
-if [ "$#" -ne 3 ]; then
-  echo "Usage: $0 <ACTION> <EVENT_SUB_TYPES> <SECTION_IDS>"
+if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
+  echo "Usage: $0 <ACTION> <EVENT_SUB_TYPES> <SECTION_IDS> [<EXCLUDED_FIELDS>]"
   exit 1
 fi
 
@@ -10,6 +10,13 @@ fi
 ACTION="$1"
 SUB_TYPES="$2"
 SECTION_IDS="$3"
+
+# Assign the optional fourth argument if provided
+if [ -n "$4" ]; then
+  EXCLUDED_FIELDS="$4"
+else
+  EXCLUDED_FIELDS=""
+fi
 
 # Define the application name you want to search for
 TARGET_APP_NAME="csv_job"
@@ -56,6 +63,19 @@ cat <<EOT > job-config.json
         "$SECTION_IDS",
         "--action",
         "$ACTION"
+EOT
+
+# Conditionally add `--excluded_fields` to `entryPointArguments`
+if [ -n "$EXCLUDED_FIELDS" ]; then
+  cat <<EOT >> job-config.json
+        ,
+        "--exclude_fields",
+        "$EXCLUDED_FIELDS"
+EOT
+fi
+
+# Close the JSON blob
+cat <<EOT >> job-config.json
       ],
       "sparkSubmitParameters": "--conf spark.archives=s3://analyticsjobs/dataset.zip#dataset --py-files s3://analyticsjobs/dataset.zip $SPARK_PARAMS"
     }

@@ -12,6 +12,7 @@ if __name__ == "__main__":
     parser.add_argument("--ignored_student_ids", required=True, help="Student Ids to Ignore")
     parser.add_argument("--chunk_size", required=True, help="Chunk Size")
     parser.add_argument("--sub_types", required=True, help="Event Sub Types")
+    parser.add_argument("--exclude_fields", required=False, help="List of fields to exclude")
 
     args = parser.parse_args()
 
@@ -22,6 +23,7 @@ if __name__ == "__main__":
     bucket_name = args.bucket_name
     inventory_bucket_name = bucket_name + "-inventory"
     chunk_size = int(args.chunk_size)
+    exclude_fields = [x for x in (args.exclude_fields.split(",") if args.exclude_fields else [])]
 
     context = {
         "bucket_name": bucket_name,
@@ -31,7 +33,8 @@ if __name__ == "__main__":
         "chunk_size": chunk_size,
         "section_ids": section_ids,
         "action": action,
-        "sub_types": sub_types
+        "sub_types": sub_types,
+        "exclude_fields": exclude_fields
     }
     action = args.action
 

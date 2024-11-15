@@ -1,9 +1,9 @@
 import json
 import boto3
 
-from dataset.utils import encode_array, encode_json
+from dataset.utils import prune_fields
 
-def page_viewed_handler(bucket_key, context):
+def page_viewed_handler(bucket_key, context, excluded_indices):
     # Use the key to read in the file contents, split on line endings
     bucket_name, key = bucket_key
 
@@ -25,6 +25,7 @@ def page_viewed_handler(bucket_key, context):
         
         if student_id not in context["ignored_student_ids"]:
             o = from_page_viewed(j)
+            o = prune_fields(o, excluded_indices)
             values.append(o)
             
     return values

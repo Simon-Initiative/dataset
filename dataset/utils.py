@@ -16,14 +16,20 @@ def encode_json(json_obj):
     json_str = json.dumps(json_obj, separators=(',', ':'))  # Compact JSON format
     return '"' + json_str.replace('\n', '') + '"'
 
-def parallel_map(sc, bucket_name, keys, map_func, context):
+def parallel_map(sc, bucket_name, keys, map_func, context, columns):
     
     bucket_keys = [(bucket_name, key) for key in keys]
     
     pkeys = sc.parallelize(bucket_keys)
-    activation = pkeys.flatMap(lambda key: map_func(key, context))
+    activation = pkeys.flatMap(lambda key: map_func(key, context, columns))
     
     # Collect the results to the driver and print them
     results = activation.collect()
     
     return results
+
+def prune_fields(record, excluded_indices):
+    for index in excluded_indices:
+        del record[index]
+    return record
+

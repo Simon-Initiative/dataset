@@ -1,9 +1,9 @@
 import json
 import boto3
 
-from dataset.utils import encode_array, encode_json
+from dataset.utils import encode_array, encode_json, prune_fields
 
-def attempts_handler(bucket_key, context):
+def attempts_handler(bucket_key, context, excluded_indices):
     # Use the key to read in the file contents, split on line endings
     bucket_name, key = bucket_key
 
@@ -28,12 +28,15 @@ def attempts_handler(bucket_key, context):
         if student_id not in context["ignored_student_ids"]:
             if "part_attempt_evaluated" in subtypes and j["object"]["definition"]["type"] == "http://adlnet.gov/expapi/activities/question":
                 o = from_part_attempt(j)
+                o = prune_fields(o, excluded_indices)
                 values.append(o)
             elif "activity_attempt_evaluated" in subtypes and j["object"]["definition"]["type"] == "http://oli.cmu.edu/extensions/activity_attempt":
                 o = from_activity_attempt(j)
+                o = prune_fields(o, excluded_indices)
                 values.append(o)
             elif "page_attempt_evaluated" in subtypes and j["object"]["definition"]["type"] == "http://oli.cmu.edu/extensions/page_attempt":
                 o = from_page_attempt(j)
+                o = prune_fields(o, excluded_indices)
                 values.append(o)
 
         

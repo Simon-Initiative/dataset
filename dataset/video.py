@@ -1,9 +1,9 @@
 import json
 import boto3
 
-from dataset.utils import encode_array, encode_json
+from dataset.utils import prune_fields
 
-def video_handler(bucket_key, context):
+def video_handler(bucket_key, context, excluded_indices):
     # Use the key to read in the file contents, split on line endings
     bucket_name, key = bucket_key
 
@@ -30,15 +30,19 @@ def video_handler(bucket_key, context):
             if short_verb in subtypes:
                 if short_verb == "played":
                     o = from_played(j)
+                    o = prune_fields(o, excluded_indices)
                     values.append(o)
                 elif short_verb == "paused":
                     o = from_paused(j)
+                    o = prune_fields(o, excluded_indices)
                     values.append(o)
                 elif short_verb == "seeked":
                     o = from_seeked(j)
+                    o = prune_fields(o, excluded_indices)
                     values.append(o)
                 elif short_verb == "completed":
                     o = from_completed(j)
+                    o = prune_fields(o, excluded_indices)
                     values.append(o)
             
         
