@@ -1,6 +1,6 @@
 import argparse
 
-from dataset.dataset import generate_dataset
+from dataset.dataset import generate_dataset, generate_datashop
 
 if __name__ == "__main__":
 
@@ -11,14 +11,14 @@ if __name__ == "__main__":
     parser.add_argument("--section_ids", required=True, help="Course Section Ids")
     parser.add_argument("--ignored_student_ids", required=True, help="Student Ids to Ignore")
     parser.add_argument("--chunk_size", required=True, help="Chunk Size")
-    parser.add_argument("--sub_types", required=True, help="Event Sub Types")
+    parser.add_argument("--sub_types", required=False, help="Event Sub Types")
     parser.add_argument("--exclude_fields", required=False, help="List of fields to exclude")
 
     args = parser.parse_args()
 
     section_ids = [int(x) for x in args.section_ids.split(",")]
     ignored_student_ids = [int(x) for x in args.ignored_student_ids.split(",")]
-    sub_types = [x for x in args.sub_types.split(",")]
+    sub_types = [x for x in (args.sub_types.split(",") if args.sub_types else [])]
     action = args.action
     bucket_name = args.bucket_name
     inventory_bucket_name = bucket_name + "-inventory"
@@ -38,6 +38,9 @@ if __name__ == "__main__":
     }
     action = args.action
 
-    generate_dataset(section_ids, action, context)
+    if action == 'datashop':
+        generate_datashop(section_ids, action, context)
+    else:
+        generate_dataset(section_ids, action, context)
 
     print("job completed")

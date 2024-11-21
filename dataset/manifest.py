@@ -1,6 +1,6 @@
 import json 
 
-def build_json_manifest(s3_client, context, num_chunks):
+def build_json_manifest(s3_client, context, num_chunks, extension):
 
     bucket = context["bucket_name"]
     job_id = context["job_id"]
@@ -10,17 +10,17 @@ def build_json_manifest(s3_client, context, num_chunks):
     # as URLs to the S3 objects
     manifest = {
         "context": context,
-        "chunks": [f"{prefix}{job_id}/chunk_{i}.csv" for i in range(num_chunks)]
+        "chunks": [f"{prefix}{job_id}/chunk_{i}.{extension}" for i in range(num_chunks)]
     }
 
     # upload the manifest to S3 into the job_id directory:
     manifest_key = f'{job_id}/manifest.json'
     s3_client.put_object(Bucket="torus-datasets-prod", Key=manifest_key, Body=json.dumps(manifest))
-    
+
 
     return manifest_key
 
-def build_html_manifest(s3_client, context, num_chunks):
+def build_html_manifest(s3_client, context, num_chunks, extension):
 
     bucket = context["bucket_name"]
     job_id = context["job_id"]
@@ -40,7 +40,7 @@ def build_html_manifest(s3_client, context, num_chunks):
 
     html += "<ul>"
     for i in range(num_chunks):
-        html += f'<li><a href="{prefix}{job_id}/chunk_{i}.csv">{prefix}{job_id}/chunk_{i}.csv</a></li>'
+        html += f'<li><a href="{prefix}{job_id}/chunk_{i}.{extension}">{prefix}{job_id}/chunk_{i}.{extension}</a></li>'
 
     html += "</ul></body></html>"
 
