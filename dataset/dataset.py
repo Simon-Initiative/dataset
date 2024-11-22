@@ -13,8 +13,7 @@ from dataset.manifest import build_html_manifest, build_json_manifest
 from dataset.event_registry import get_event_config
 from dataset.datashop import handle_datashop, download_data_shop_context
 
-
-def generate_datashop(section_ids, action, context):
+def generate_datashop(context):
     
     # Initialize the Spark context and S3 client
     sc, spark = initialize_spark_context("generate_dataset")
@@ -25,6 +24,7 @@ def generate_datashop(section_ids, action, context):
     inventory_bucket = context["inventory_bucket_name"]
     target_prefix = f'{context["job_id"]}/'
     chunk_size = context["chunk_size"]
+    section_ids = context["section_ids"]
 
     # Retrieve matching keys from S3 inventory
     keys = list_keys_from_inventory(section_ids, "attempt_evaluated", source_bucket, inventory_bucket)

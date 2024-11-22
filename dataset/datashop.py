@@ -45,7 +45,7 @@ def download_data_shop_context(s3_client, context):
 def to_xml_message(json, context): 
 
     part_attempt = parse_attempt(json)
-    part_attempt['activity_type'] = context['activities'].get(part_attempt['activity_id'], {'type': 'Unknown'})['type']
+    part_attempt['activity_type'] = context['activities'].get(str(part_attempt['activity_id']), {'type': 'Unknown'})['type']
 
     context = expand_context(context, part_attempt)
 
@@ -83,13 +83,11 @@ def expand_context(context, part_attempt):
         'transaction_id': unique_id(part_attempt),
         'dataset_name': context['dataset_name'],
         'part_attempt': part_attempt,
-        'publication': context['publication'],
-        'project': context['project'],
         'hierarchy': context['hierarchy'],
         'activities': context['activities'],
         'skill_titles': context['skill_titles'],
         'skill_ids': part_attempt['attached_objectives'],
-        'total_hints_available': len(context['activities'].get(activity_id, {'parts': {part_id: {'hints': []}}})['parts'][part_id]['hints'])
+        'total_hints_available': len(context['activities'].get(str(activity_id), {'parts': {part_id: {'hints': []}}})['parts'][part_id]['hints'])
     }
 
     return expanded
@@ -182,7 +180,7 @@ def get_hints_for_part(part_attempt, context):
     text = []
 
     # create of id map of hints
-    all_hints = context["activities"].get(activity_id, {'parts': {part_id: {'hints': []}}})["parts"][part_id]["hints"]
+    all_hints = context["activities"].get(str(activity_id), {'parts': {part_id: {'hints': []}}})["parts"][part_id]["hints"]
     hint_map = {hint["id"]: hint for hint in all_hints}
 
     for hint in hints:
@@ -273,7 +271,7 @@ def skills(context):
     skill_elements = []
 
     for skill_id in skill_ids:
-        skill_title = skill_titles.get(skill_id, "Unknown")
+        skill_title = skill_titles.get(str(skill_id), "Unknown")
         skill_elem = ET.Element("skill")
         ET.SubElement(skill_elem, "name").text = skill_title
         skill_elements.append(skill_elem)
@@ -460,7 +458,7 @@ def choices_input(context, input_):
     """
     activity_id = context["part_attempt"]["activity_id"]
     
-    choices = context['activities'][activity_id].get("choices", [])
+    choices = context['activities'][str(activity_id)].get("choices", [])
 
     # choices is alist of dicts with keys 'id' and 'content', turn it 
     # into a dict with 'id' as key and 'content' as value
@@ -559,12 +557,12 @@ def assemble_from_hierarchy_path(page_id, problem_name, hierarchy):
         container_elem.append(child)
         return container_elem
 
-    page = hierarchy.get(page_id, {"title": "Unknown Page", "ancestors": [], "graded": False})
+    page = hierarchy.get(str(page_id), {"title": "Unknown Page", "ancestors": [], "graded": False})
 
     child = page_to_element(page)
 
     for a in reversed(page['ancestors']):
-        child = container_to_element(hierarchy[a], child)
+        child = container_to_element(hierarchy[str(a)], child)
 
     return child
 

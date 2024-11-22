@@ -39,7 +39,7 @@ if __name__ == "__main__":
     action = args.action
 
     if action == 'datashop':
-        generate_datashop(section_ids, action, context)
+        generate_datashop(context)
     else:
         generate_dataset(section_ids, action, context)
 

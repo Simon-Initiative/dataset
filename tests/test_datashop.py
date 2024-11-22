@@ -12,19 +12,17 @@ class TestDatashop(unittest.TestCase):
 
         # create a fake context
         context = {
-            'dataset_name': 'some-name',
-            'publication': 22,
-            'project': 1,
+            'dataset_name': 'test_dataset',
             'skill_titles': {
-                161568: 'skill text 1'
+                '161568': 'skill text 1'
             },
             'hierarchy': {
-                152914: {'graded': True, 'title': 'Assessment 1', 'ancestors': [24, 25]},
-                24: {'title': 'Unit 1'},
-                25: {'title': 'Module 1'},
+                '152914': {'graded': True, 'title': 'Assessment 1', 'ancestors': [24, 25]},
+                '24': {'title': 'Unit 1'},
+                '25': {'title': 'Module 1'},
             },
             'activities': {
-                162143: {
+                '162143': {
                     'choices': [
                         {'id': '1040950542', 'content': [{'text': 'choice A'}]},
                         {'id': '10', 'text': 'choice B'},
@@ -54,9 +52,7 @@ class TestDatashop(unittest.TestCase):
 
         # create a fake context
         context = {
-            'dataset_name': 'some-name',
-            'publication': 22,
-            'project': 1,
+            'dataset_name': 'test_dataset',
             'skill_titles': {},
             'hierarchy': {},
             'activities': {}
