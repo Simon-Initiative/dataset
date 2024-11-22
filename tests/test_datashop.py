@@ -1,5 +1,5 @@
 import unittest
-from dataset.datashop import to_xml_message, calculate_ancestors
+from dataset.datashop import to_xml_message, post_process_datashop_context
 import json
 
 class TestDatashop(unittest.TestCase):
@@ -29,20 +29,20 @@ class TestDatashop(unittest.TestCase):
                         {'id': '0542', 'text': 'choice C'}
                     ],
                     'type': 'oli_multiple_choice',
-                    'parts': {
-                        '1': {
+                    'parts': [
+                        {
+                            'id': '1', 
                             'hints': [
                                 {'id': 'h1', 'content': [{'text': 'Hint text 1'}]},
                                 {'id': 'h2', 'content': [{'text': 'Hint text 2'}]},
                             ]
                         }
-                    }
+                    ]
                 }
             }
         }
-        print("here")
-        calculate_ancestors(context)
-        print(context['hierarchy'])
+        
+        post_process_datashop_context(context)
         # call the from_part_attempt function with the data
         result = to_xml_message(data, context)
         print(result)

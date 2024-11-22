@@ -64,6 +64,7 @@ def generate_datashop(context):
             print(f"Error processing chunk {chunk_index + 1}/{number_of_chunks}: {e}")
 
     # Build and save JSON and HTML manifests
+    context['datashop_context'] = {}
     build_manifests(s3_client, context, number_of_chunks, "xml")
 
     # Stop Spark context

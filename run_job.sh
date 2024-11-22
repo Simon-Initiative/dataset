@@ -80,6 +80,13 @@ cat <<EOT >> job-config.json
       ],
       "sparkSubmitParameters": "--conf spark.archives=s3://analyticsjobs/dataset.zip#dataset --py-files s3://analyticsjobs/dataset.zip $SPARK_PARAMS"
     }
+  },
+  "configurationOverrides": {
+    "monitoringConfiguration": {
+      "s3MonitoringConfiguration": {
+        "logUri": "$LOG_URI"
+      }
+    }
   }
 }
 EOT

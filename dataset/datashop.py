@@ -7,7 +7,7 @@ def handle_datashop(bucket_key, context, excluded_indices):
     bucket_name, key = bucket_key
 
     datashop_context = context['datashop_context']  
-    calculate_ancestors(datashop_context)
+    post_process_datashop_context(datashop_context)
 
     # Create a session using the specified profile
     s3_client = boto3.client('s3')
@@ -73,6 +73,21 @@ def expand_context(context, part_attempt):
     activity_id = part_attempt['activity_id']
     part_id = part_attempt['part_id']
 
+    print(context['activities'].get(str(activity_id)))
+
+    activity = context['activities'].get(str(activity_id), {'parts': {part_id: {'hints': []}}})
+    parts = activity.get('parts', {'parts': []})
+    part = parts.get(part_id, {'hints': []})
+
+    hints = part.get('hints', [])
+
+    if not hints or not isinstance(hints, list):
+        hints = []
+
+    hint_text = [get_text_from_content(h) for h in hints]
+    # count the nubmer of hints that are not empty strings:
+    total_hints_available = len([h for h in hint_text if h])
+
     expanded = {
         'time': part_attempt['timestamp'],
         'user_id': str(part_attempt['user_id']),
@@ -88,7 +103,7 @@ def expand_context(context, part_attempt):
         'activities': context['activities'],
         'skill_titles': context['skill_titles'],
         'skill_ids': part_attempt['attached_objectives'],
-        'total_hints_available': len(context['activities'].get(str(activity_id), {'parts': {part_id: {'hints': []}}})['parts'][part_id]['hints'])
+        'total_hints_available': total_hints_available
     }
 
     return expanded
@@ -130,6 +145,28 @@ def calculate_ancestors(context):
         ancestors.reverse()
         hierarchy[key]['ancestors'] = ancestors
 
+def mapify_parts(context):
+    activities = context['activities']
+    
+    for activity_id, activity in activities.items():
+        parts = activity.get('parts', [])
+        activity['parts'] = {}
+        # if parts is an array and not None
+        if parts is not None and isinstance(parts, list):
+            for part in parts:
+                # if part is an object:
+                if isinstance(part, dict):
+                    # if part has an 'id' field:
+                    part_id = part.get('id', None)
+
+                    if part_id is not None:
+                        # add the part to the parts map
+                        activity['parts'][part_id] = part
+                
+
+def post_process_datashop_context(context):
+    mapify_parts(context)
+    calculate_ancestors(context)
 
 def unique_id(part_attempt):
     return f"{part_attempt['activity_id']}-part{part_attempt['part_id']}-{random_string(8)}"
@@ -216,7 +253,17 @@ def get_hints_for_part(part_attempt, context):
     text = []
 
     # create of id map of hints
-    all_hints = context["activities"].get(str(activity_id), {'parts': {part_id: {'hints': []}}})["parts"][part_id]["hints"]
+    activity = context["activities"].get(str(activity_id), {'parts': {part_id: {'hints': []}}})
+    parts = activity.get('parts', {'parts': []})
+    if parts is None or not isinstance(parts, dict):
+        parts = {}
+    part = parts.get(part_id, {'hints': []})
+    if part is None or not isinstance(part, dict):
+        part = {}
+    all_hints = part.get('hints', [])
+    if all_hints is None or not isinstance(all_hints, list):
+        all_hints = []
+
     hint_map = {hint["id"]: hint for hint in all_hints}
 
     for hint in hints:
@@ -462,9 +509,13 @@ def handle_input_by_activity(context):
     Handles input based on activity type.
     """
     part_attempt = context.get("part_attempt")
-    input_ = part_attempt.get("response", {}).get("input", "")
+    response = part_attempt.get("response", {})
+    
+    if response and isinstance(response, dict):
+        input_ = response.get("input", "")
+    else:
+        input_ = ""
 
-    print(input_)
     activity_type = get_activity_type(part_attempt)
 
     handlers = {
@@ -493,21 +544,29 @@ def choices_input(context, input_):
     Handles input for choice-based activities.
     """
     activity_id = context["part_attempt"]["activity_id"]
+
+    activity = context['activities'].get(str(activity_id), {'choices': []})
     
-    choices = context['activities'][str(activity_id)].get("choices", [])
+    choices = activity.get("choices", [])
+
+    if not choices or not isinstance(choices, list):
+        choices = []
 
     # choices is alist of dicts with keys 'id' and 'content', turn it 
     # into a dict with 'id' as key and 'content' as value
     choices = {choice['id']: choice for choice in choices}
 
     # trim input_, then split it by spaces
-    input_ = input_.strip().split(" ")
+    if input_ is None:
+        return "Unknown Choice"
+    else:
+        input_ = input_.strip().split(" ")
 
-    input_ = [choices.get(choice, {'content': [{'text': 'Unknown Choice'}]}) for choice in input_]
+        input_ = [choices.get(choice, {'content': [{'text': 'Unknown Choice'}]}) for choice in input_]
 
-    # convert the array of {'content': [{'text': 'Choice'}]} to an array of strings and contactenate them
-    items = [get_text_from_content(choice) for choice in input_]
-    return " ".join(items)
+        # convert the array of {'content': [{'text': 'Choice'}]} to an array of strings and contactenate them
+        items = [get_text_from_content(choice) for choice in input_]
+        return " ".join(items)
 
 
 def get_activity_type(part_attempt):
@@ -529,16 +588,24 @@ def select_feedback(part_attempt):
     return get_text_from_content(feedback)
 
 def get_text_from_content(item):
-    def extract_text(content):
-        text = ""
-        for item in content:
-            if item.get("text"):
-                text += item["text"]
-            if item.get("children"):
-                text += extract_text(item["children"])
-        return text
-    
-    return extract_text(item.get("content", []))
+
+    if item is None:
+        return ""
+    else:
+        def extract_text(content):
+            text = ""
+            for item in content:
+                if isinstance(item, dict):
+                    if item.get("text"):
+                        text += item["text"]
+                    if item.get("children"):
+                        text += extract_text(item["children"])
+                else:
+                    text += ""
+                    
+            return text
+        
+        return extract_text(item.get("content", []))
 
 def create_element(tag, text):
     """
