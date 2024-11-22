@@ -8,7 +8,7 @@ echo "Starting deployment..."
 # Define variables
 BUCKET_NAME="analyticsjobs"
 DATASET_DIR="dataset"
-MAIN_FILE="db_test.py"
+MAIN_FILE="job.py"
 ZIP_FILE="dataset.zip"
 
 # Check if the dataset directory exists

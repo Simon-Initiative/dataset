@@ -7,6 +7,7 @@ def handle_datashop(bucket_key, context, excluded_indices):
     bucket_name, key = bucket_key
 
     datashop_context = context['datashop_context']  
+    calculate_ancestors(datashop_context)
 
     # Create a session using the specified profile
     s3_client = boto3.client('s3')
@@ -94,6 +95,41 @@ def expand_context(context, part_attempt):
 
 import random 
 import string
+
+def calculate_ancestors(context):
+
+    # We are given the hierarchy like this:
+    #'hierarchy': {
+    #            '152914': {'graded': True, 'title': 'Assessment 1'},
+    #            '24': {'title': 'Unit 1', 'children': [25]},
+    #            '25': {'title': 'Module 1', 'children': [152914]},
+    #        },
+    # 
+    # And this calculates an 'ancestors' list for each item in the hierarchy
+    # where the ancestors are the parents of the item
+
+    hierarchy = context['hierarchy']
+
+    # calculate the direct parent of each item and store it as 'parent'
+    for key, value in hierarchy.items():
+        for child in value.get('children', []):
+            hierarchy[str(child)]['parent'] = key
+
+    # calculate the ancestors of each item, by walking up the tree of parents
+    # until we reach a node that has no parent
+    for key, value in hierarchy.items():
+
+        ancestors = []
+        current = key
+
+        while 'parent' in hierarchy[current]:
+            current = hierarchy[current]['parent']
+            ancestors.append(int(current))
+
+        # reverse the ancestors
+        ancestors.reverse()
+        hierarchy[key]['ancestors'] = ancestors
+
 
 def unique_id(part_attempt):
     return f"{part_attempt['activity_id']}-part{part_attempt['part_id']}-{random_string(8)}"
