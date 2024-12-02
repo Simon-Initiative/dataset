@@ -38,8 +38,8 @@ ROLE_ARN="arn:aws:iam::762438811603:role/service-role/AmazonEMR-ExecutionRole-17
 LOG_URI="s3://analyticsjobs/logs/"  # Update with your log bucket
 SPARK_PARAMS="--conf spark.executor.memory=2G --conf spark.executor.cores=2"  # Customize as needed
 
-#JOB_ID="$(date '+%Y%m%d%H%M%S')-$(LC_ALL=C tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 5)"
-JOB_ID="1816"
+JOB_ID="$(date '+%Y%m%d%H%M%S')-$(LC_ALL=C tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 5)"
+#JOB_ID="1816"
 
 # Construct the JSON blob
 cat <<EOT > job-config.json

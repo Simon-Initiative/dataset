@@ -45,7 +45,7 @@ def attempts_handler(bucket_key, context, excluded_indices):
 
 def from_part_attempt(value):
     return [
-        "part_attempt_evaluated",
+        value["object"]["definition"]["name"]["en-US"],
         value["timestamp"],
         value["actor"]["account"]["name"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/section_id"],
@@ -71,7 +71,7 @@ def from_part_attempt(value):
 
 def from_activity_attempt(value):
     return [
-        "activity_attempt_evaluated",
+        value["object"]["definition"]["name"]["en-US"],
         value["timestamp"],
         value["actor"]["account"]["name"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/section_id"],
@@ -97,7 +97,7 @@ def from_activity_attempt(value):
 
 def from_page_attempt(value):
     return [
-        "page_attempt_evaluated",
+        value["object"]["definition"]["name"]["en-US"],
         value["timestamp"],
         value["actor"]["account"]["name"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/section_id"],
