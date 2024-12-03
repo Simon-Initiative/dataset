@@ -31,7 +31,8 @@ The `deploy.sh` script automates packaging and uploading the PySpark job script 
 ## Running the PySpark Job
 
 A job can be manually invoked from EMR Serverless Studio, but also directly from the commandline using
-the `run_job.sh` script. The AWS commandline tools are required (https://aws.amazon.com/cli/)
+one of two helper bash scripts. These bash scripts are wrappers around the AWS commandline tool, which you
+need to install from (https://aws.amazon.com/cli/)
 
 ### Steps to Run a CSV raw data job:
 1. Run the `run_job.sh` script from the root directory with arguments for action, event subtypes, and section ids
