@@ -8,10 +8,10 @@ import os
 import argparse
 
 from dataset.keys import list_keys_from_inventory
-from dataset.utils import parallel_map, prune_fields
+from dataset.utils import parallel_map, prune_fields, serial_map
 from dataset.manifest import build_html_manifest, build_json_manifest
 from dataset.event_registry import get_event_config
-from dataset.datashop import handle_datashop, download_data_shop_context
+from dataset.datashop import handle_datashop, download_data_shop_context, post_process_datashop_context
 
 def generate_datashop(context):
     
@@ -36,6 +36,8 @@ def generate_datashop(context):
 
     # Retrieve the datashop job context
     datashop_context = download_data_shop_context(s3_client, context)
+    post_process_datashop_context(datashop_context)
+
     context['datashop_context'] = datashop_context
 
     first_chunk_prefix =  """
@@ -50,10 +52,11 @@ def generate_datashop(context):
         try:
             # Process keys in parallel to 
             chunk_data = parallel_map(sc, source_bucket, chunk_keys, handle_datashop, context, [])
+            #chunk_data = serial_map(source_bucket, chunk_keys, handle_datashop, context, [])
 
             if chunk_index == 0:
                 chunk_data = [first_chunk_prefix] + chunk_data
-            elif chunk_index == number_of_chunks - 1:
+            if chunk_index == number_of_chunks - 1:
                 chunk_data = chunk_data + [last_chunk_suffix]
             
             # Save the collected results as an XML chunk to S3

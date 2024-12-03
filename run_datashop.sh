@@ -1,21 +1,20 @@
 #!/bin/bash
 
-# Check if two arguments are provided
-if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
-  echo "Usage: $0 <ACTION> <EVENT_SUB_TYPES> <SECTION_IDS> [<EXCLUDED_FIELDS>]"
+# Check if two or three arguments are provided
+if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
+  echo "Usage: $0 <JOB_ID> <SECTION_IDS> [<IGNORED_STUDENT_IDS>]"
   exit 1
 fi
 
 # Assign command-line arguments to variables
-ACTION="$1"
-SUB_TYPES="$2"
-SECTION_IDS="$3"
+JOB_ID="$1"
+SECTION_IDS="$2"
 
-# Assign the optional fourth argument if provided
-if [ -n "$4" ]; then
-  EXCLUDED_FIELDS="$4"
+# Assign the optional third argument if provided
+if [ -n "$3" ]; then
+  IGNORED_STUDENT_IDS="$3"
 else
-  EXCLUDED_FIELDS=""
+  IGNORED_STUDENT_IDS="1"
 fi
 
 # Define the application name you want to search for
@@ -38,9 +37,6 @@ ROLE_ARN="arn:aws:iam::762438811603:role/service-role/AmazonEMR-ExecutionRole-17
 LOG_URI="s3://analyticsjobs/logs/"  # Update with your log bucket
 SPARK_PARAMS="--conf spark.executor.memory=2G --conf spark.executor.cores=2"  # Customize as needed
 
-JOB_ID="$(date '+%Y%m%d%H%M%S')-$(LC_ALL=C tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 5)"
-#JOB_ID="1816"
-
 # Construct the JSON blob
 cat <<EOT > job-config.json
 {
@@ -55,28 +51,13 @@ cat <<EOT > job-config.json
         "--chunk_size",
         "10000",
         "--ignored_student_ids",
-        "1",
-        "--sub_types",
-        "$SUB_TYPES",
+        "$IGNORED_STUDENT_IDS",
         "--job_id",
         "$JOB_ID",
         "--section_ids",
         "$SECTION_IDS",
         "--action",
-        "$ACTION"
-EOT
-
-# Conditionally add `--excluded_fields` to `entryPointArguments`
-if [ -n "$EXCLUDED_FIELDS" ]; then
-  cat <<EOT >> job-config.json
-        ,
-        "--exclude_fields",
-        "$EXCLUDED_FIELDS"
-EOT
-fi
-
-# Close the JSON blob
-cat <<EOT >> job-config.json
+        "datashop"
       ],
       "sparkSubmitParameters": "--conf spark.archives=s3://analyticsjobs/dataset.zip#dataset --py-files s3://analyticsjobs/dataset.zip $SPARK_PARAMS"
     }

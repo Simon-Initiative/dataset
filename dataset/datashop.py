@@ -6,9 +6,6 @@ import boto3
 def handle_datashop(bucket_key, context, excluded_indices):
     bucket_name, key = bucket_key
 
-    datashop_context = context['datashop_context']  
-    post_process_datashop_context(datashop_context)
-
     # Create a session using the specified profile
     s3_client = boto3.client('s3')
     
@@ -18,6 +15,8 @@ def handle_datashop(bucket_key, context, excluded_indices):
     content = response['Body'].read().decode('utf-8')
 
     values = []
+
+    datashop_context = context['datashop_context']
 
     for line in content.splitlines():
         # parse one line of json
@@ -73,10 +72,8 @@ def expand_context(context, part_attempt):
     activity_id = part_attempt['activity_id']
     part_id = part_attempt['part_id']
 
-    print(context['activities'].get(str(activity_id)))
-
     activity = context['activities'].get(str(activity_id), {'parts': {part_id: {'hints': []}}})
-    parts = activity.get('parts', {'parts': []})
+    parts = activity.get('parts', {'parts': {}})
     part = parts.get(part_id, {'hints': []})
 
     hints = part.get('hints', [])
@@ -85,6 +82,7 @@ def expand_context(context, part_attempt):
         hints = []
 
     hint_text = [get_text_from_content(h) for h in hints]
+
     # count the nubmer of hints that are not empty strings:
     total_hints_available = len([h for h in hint_text if h])
 

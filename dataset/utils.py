@@ -33,3 +33,12 @@ def prune_fields(record, excluded_indices):
         del record[index]
     return record
 
+def serial_map(bucket_name, keys, map_func, context, columns):
+    bucket_keys = [(bucket_name, key) for key in keys]
+    results = []
+
+    for key in bucket_keys:
+        results.extend(map_func(key, context, columns))
+    
+    return results
+
