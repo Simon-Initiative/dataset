@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Check if two arguments are provided
-if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
-  echo "Usage: $0 <ACTION> <EVENT_SUB_TYPES> <SECTION_IDS> [<EXCLUDED_FIELDS>]"
+if [ "$#" -lt 4 ] || [ "$#" -gt 5 ]; then
+  echo "Usage: $0 <ACTION> <EVENT_SUB_TYPES> <SECTION_IDS> <PAGES> [<EXCLUDED_FIELDS>]"
   exit 1
 fi
 
@@ -10,10 +10,11 @@ fi
 ACTION="$1"
 SUB_TYPES="$2"
 SECTION_IDS="$3"
+PAGES="$4"
 
 # Assign the optional fourth argument if provided
-if [ -n "$4" ]; then
-  EXCLUDED_FIELDS="$4"
+if [ -n "$5" ]; then
+  EXCLUDED_FIELDS="$5"
 else
   EXCLUDED_FIELDS=""
 fi
@@ -62,6 +63,8 @@ cat <<EOT > job-config.json
         "$JOB_ID",
         "--section_ids",
         "$SECTION_IDS",
+         "--page_ids",
+        "$PAGES",
         "--action",
         "$ACTION"
 EOT

@@ -24,8 +24,10 @@ def attempts_handler(bucket_key, context, excluded_indices):
         j = json.loads(line)
 
         student_id = j["actor"]["account"]["name"]
+        project_matches = context["project_id"] is None or context["project_id"] == j["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"]
+        page_matches = context["page_ids"] is None or j["context"]["extensions"]["http://oli.cmu.edu/extensions/page_id"] in context["page_ids"]
         
-        if student_id not in context["ignored_student_ids"]:
+        if student_id not in context["ignored_student_ids"] and project_matches and page_matches:
             if "part_attempt_evaluated" in subtypes and j["object"]["definition"]["type"] == "http://adlnet.gov/expapi/activities/question":
                 o = from_part_attempt(j)
                 o = prune_fields(o, excluded_indices)

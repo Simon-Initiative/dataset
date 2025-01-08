@@ -25,8 +25,11 @@ def video_handler(bucket_key, context, excluded_indices):
 
         student_id = j["actor"]["account"]["name"]
         short_verb = j["verb"]["display"]["en-US"]    
-        
-        if student_id not in context["ignored_student_ids"]:
+
+        project_matches = context["project_id"] is None or context["project_id"] == j["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"]
+        page_matches = context["page_ids"] is None or j["context"]["extensions"]["http://oli.cmu.edu/extensions/resource_id"] in context["page_ids"]
+
+        if student_id not in context["ignored_student_ids"] and project_matches and page_matches:
             if short_verb in subtypes:
                 if short_verb == "played":
                     o = from_played(j)

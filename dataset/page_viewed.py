@@ -22,8 +22,10 @@ def page_viewed_handler(bucket_key, context, excluded_indices):
         j = json.loads(line)
 
         student_id = j["actor"]["account"]["name"]
+        project_matches = context["project_id"] is None or context["project_id"] == j["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"]
+        page_matches = context["page_ids"] is None or j["context"]["extensions"]["http://oli.cmu.edu/extensions/page_id"] in context["page_ids"]
         
-        if student_id not in context["ignored_student_ids"]:
+        if student_id not in context["ignored_student_ids"] and project_matches and page_matches:
             o = from_page_viewed(j)
             o = prune_fields(o, excluded_indices)
             values.append(o)

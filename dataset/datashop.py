@@ -23,8 +23,9 @@ def handle_datashop(bucket_key, context, excluded_indices):
         j = json.loads(line)
 
         student_id = j["actor"]["account"]["name"]
+        project_matches = context["project_id"] is None or context["project_id"] == j["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"]
         
-        if student_id not in context["ignored_student_ids"]:
+        if student_id not in context["ignored_student_ids"] and project_matches:
             if j["object"]["definition"]["type"] == "http://adlnet.gov/expapi/activities/question":
                 o = to_xml_message(j, datashop_context)
                 values.append(o)

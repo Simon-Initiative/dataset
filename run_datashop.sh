@@ -49,7 +49,7 @@ cat <<EOT > job-config.json
         "--bucket_name",
         "torus-xapi-prod",
         "--chunk_size",
-        "10000",
+        "1000",
         "--ignored_student_ids",
         "$IGNORED_STUDENT_IDS",
         "--job_id",
@@ -57,7 +57,9 @@ cat <<EOT > job-config.json
         "--section_ids",
         "$SECTION_IDS",
         "--action",
-        "datashop"
+        "datashop",
+        "--page_ids",
+        "all"
       ],
       "sparkSubmitParameters": "--conf spark.archives=s3://analyticsjobs/dataset.zip#dataset --py-files s3://analyticsjobs/dataset.zip $SPARK_PARAMS"
     }
