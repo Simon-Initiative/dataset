@@ -40,12 +40,12 @@ def generate_datashop(context):
 
     context['datashop_context'] = datashop_context
 
-    first_chunk_prefix =  """
-    <?xml version= \"1.0\" encoding= \"UTF-8\"?>
+    # Every XML chunk should have the <?xml ?> directive and the
+    # outermost tutor_related_message_sequence element
+    chunk_prefix =  """<?xml version= \"1.0\" encoding= \"UTF-8\"?>
     <tutor_related_message_sequence version_number= \"4\" xmlns:xsi= \"http://www.w3.org/2001/XMLSchema-instance\" xsi:noNamespaceSchemaLocation= \"http://pslcdatashop.org/dtd/tutor_message_v4.xsd\">
     """
-
-    last_chunk_suffix = "</tutor_related_message_sequence>"
+    chunk_suffix = "</tutor_related_message_sequence>"
 
     # Process keys in chunks, serially
     for chunk_index, chunk_keys in enumerate(chunkify(keys, chunk_size)):
@@ -54,10 +54,7 @@ def generate_datashop(context):
             chunk_data = parallel_map(sc, source_bucket, chunk_keys, handle_datashop, context, [])
             #chunk_data = serial_map(source_bucket, chunk_keys, handle_datashop, context, [])
 
-            if chunk_index == 0:
-                chunk_data = [first_chunk_prefix] + chunk_data
-            if chunk_index == number_of_chunks - 1:
-                chunk_data = chunk_data + [last_chunk_suffix]
+            chunk_data = [chunk_prefix] + chunk_data + [chunk_suffix]
             
             # Save the collected results as an XML chunk to S3
             save_xml_chunk(chunk_data, s3_client, target_prefix, chunk_index)
