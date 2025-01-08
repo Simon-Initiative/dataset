@@ -31,13 +31,24 @@ The `deploy.sh` script automates packaging and uploading the PySpark job script 
 ## Running the PySpark Job
 
 A job can be manually invoked from EMR Serverless Studio, but also directly from the commandline using
-the `run_job.sh` script. The AWS commandline tools are required (https://aws.amazon.com/cli/)
+one of two helper bash scripts. These bash scripts are wrappers around the AWS commandline tool, which you
+need to install from (https://aws.amazon.com/cli/)
 
-### Steps to Run:
+### Steps to Run a CSV raw data job:
 1. Run the `run_job.sh` script from the root directory with arguments for action, event subtypes, and section ids
    ```bash
    ./run_job.sh attempt_evaluated part_attempt_evaluated 2342,2343
    ```
+### Steps to Run a Datashop XML job:
+1. Generate the context JSON file using the `context.sql` and manually upload it to the `torus-datasets-prod` bucket in the `contexts` folder,
+named the same as the job id sepecified in the next step.  
+2. Run the `run_datashop.sh` script from the root directory with arguments for job id and the course section ids
+   ```bash
+   ./run_datasohp.sh 1922 2342,2343
+   ```
+
+For the above to work, the context file must be named `1922.json` and be present in the `contexts` folder. 
+
 
 ## Updating the Custom Docker Image
 
