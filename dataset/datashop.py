@@ -526,16 +526,23 @@ def handle_input_by_activity(context):
         "oli_response_multi": multi_input_handler,
         "oli_image_coding": lambda c, x: x,
         "oli_adaptive": lambda c, x: "Adaptive Activity",
+        "oli_likert": multi_input_handler, # same as multi_input, we pull from choices but fall back to original value
         "oli_directed_discussion": lambda c, x: "Directed Discussion",
     }
     return handlers.get(activity_type, lambda c, x: "Unknown Activity")(context, input_)
 
 
-def multi_input_handler(context, input_):
+def multi_input_handler(context, input):
     """
     Handles multi-input cases.
     """
-    return input_
+
+    value = choices_input(context, input)
+
+    if value == 'Unknown Choice':
+        return input
+    else:
+        return value
 
 
 def choices_input(context, input_):
