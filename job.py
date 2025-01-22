@@ -9,7 +9,7 @@ if __name__ == "__main__":
     parser.add_argument("--action", required=True, help="Dataformat Export Type")
     parser.add_argument("--job_id", required=True, help="Job id")
     parser.add_argument("--section_ids", required=True, help="Course Section Ids")
-    parser.add_argument("--page_ids", required=False, help="Restrict to these page ids")
+    parser.add_argument("--page_ids", required=True, help="Restrict to these page ids")
     parser.add_argument("--ignored_student_ids", required=False, help="Student Ids to Ignore")
     parser.add_argument("--chunk_size", required=True, help="Chunk Size")
     parser.add_argument("--sub_types", required=False, help="Event Sub Types")
@@ -27,10 +27,11 @@ if __name__ == "__main__":
     chunk_size = int(args.chunk_size)
     exclude_fields = [x for x in (args.exclude_fields.split(",") if args.exclude_fields else [])]
     
-    if action == 'datashop':
+    if action == 'datashop' or args.page_ids == "all":
         page_ids = None
     else:
-        page_ids = [int(x) for x in (args.page_ids.split(",") if args.page_ids != "all" else None)]
+        page_ids = [int(x) for x in (args.page_ids.split(","))]
+
     project_id = args.enforce_project_id if args.enforce_project_id else None
 
     context = {
