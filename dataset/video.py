@@ -108,7 +108,7 @@ def from_seeked(value):
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/content_element_id"],
         value["object"]["id"],
         value["object"]["definition"]["name"]["en-US"],
-        value["context"]["extensions"]["https://w3id.org/xapi/video/extensions/length"],
+        None,
         value["result"]["extensions"]["https://w3id.org/xapi/video/extensions/time-to"],
         value["result"]["extensions"]["https://w3id.org/xapi/video/extensions/time-from"],
         None,
