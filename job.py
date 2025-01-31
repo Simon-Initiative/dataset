@@ -1,6 +1,7 @@
 import argparse
 
 from dataset.dataset import generate_dataset, generate_datashop
+from dataset.utils import guarentee_int
 
 if __name__ == "__main__":
 
@@ -33,6 +34,7 @@ if __name__ == "__main__":
         page_ids = [int(x) for x in (args.page_ids.split(","))]
 
     project_id = args.enforce_project_id if args.enforce_project_id else None
+    project_id = guarentee_int(project_id)
 
     context = {
         "bucket_name": bucket_name,
@@ -47,6 +49,7 @@ if __name__ == "__main__":
         "exclude_fields": exclude_fields,
         "project_id": project_id
     }
+
     action = args.action
 
     if action == 'datashop':

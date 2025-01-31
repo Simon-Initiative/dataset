@@ -42,3 +42,8 @@ def serial_map(bucket_name, keys, map_func, context, columns):
     
     return results
 
+def guarentee_int(value):
+    if isinstance(value, str):
+        return int(value)
+    else:
+        return value
