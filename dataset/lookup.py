@@ -28,7 +28,9 @@ def determine_student_id(context, json):
         # Retrieve the user's email from the lookup context, but falling
         # back to the user_id if the user is not found, or email is not available
         user_id = json["actor"]["account"]["name"]
-        email = context['lookup']['users'].get(user_id, {}).get('email', user_id)
+        user_id_str = str(user_id)
+
+        email = context['lookup']['users'].get(user_id_str, {}).get('email', user_id)
         
         return email
 
