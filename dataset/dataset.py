@@ -8,7 +8,7 @@ import os
 import argparse
 
 from dataset.keys import list_keys_from_inventory
-from dataset.utils import parallel_map, prune_fields, download_context
+from dataset.utils import parallel_map, prune_fields
 from dataset.manifest import build_html_manifest, build_json_manifest
 from dataset.event_registry import get_event_config
 from dataset.datashop import handle_datashop
