@@ -14,6 +14,7 @@ if __name__ == "__main__":
     parser.add_argument("--ignored_student_ids", required=False, help="Student Ids to Ignore")
     parser.add_argument("--chunk_size", required=True, help="Chunk Size")
     parser.add_argument("--sub_types", required=False, help="Event Sub Types")
+    parser.add_argument("--anonymize", required=False, help="Whether to anonymize students")
     parser.add_argument("--exclude_fields", required=False, help="List of fields to exclude")
     parser.add_argument("--enforce_project_id", required=False, help="Project id to ensure the data is from this project")
 
@@ -26,6 +27,7 @@ if __name__ == "__main__":
     bucket_name = args.bucket_name
     inventory_bucket_name = bucket_name + "-inventory"
     chunk_size = int(args.chunk_size)
+    anonymize = args.anonymize if args.anonymize else True
     exclude_fields = [x for x in (args.exclude_fields.split(",") if args.exclude_fields else [])]
     
     if action == 'datashop' or args.page_ids == "all":
@@ -47,7 +49,8 @@ if __name__ == "__main__":
         "action": action,
         "sub_types": sub_types,
         "exclude_fields": exclude_fields,
-        "project_id": project_id
+        "project_id": project_id,
+        "anonymize": anonymize, 
     }
 
     action = args.action

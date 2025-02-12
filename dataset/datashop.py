@@ -1,6 +1,10 @@
 import xml.etree.ElementTree as ET
 import json
 import boto3
+import random 
+import string
+
+from dataset.lookup import determine_student_id
 
 
 def handle_datashop(bucket_key, context, excluded_indices):
@@ -16,7 +20,7 @@ def handle_datashop(bucket_key, context, excluded_indices):
 
     values = []
 
-    datashop_context = context['datashop_context']
+    lookup = context['lookup']
 
     for line in content.splitlines():
         # parse one line of json
@@ -27,25 +31,14 @@ def handle_datashop(bucket_key, context, excluded_indices):
         
         if student_id not in context["ignored_student_ids"] and project_matches:
             if j["object"]["definition"]["type"] == "http://adlnet.gov/expapi/activities/question":
-                o = to_xml_message(j, datashop_context)
+                o = to_xml_message(j, lookup)
                 values.append(o)
             
     return values
 
-def download_data_shop_context(s3_client, context):
-
-    key = context['job_id']
-    file_name = f"contexts/{key}.json"
-
-    response = s3_client.get_object(Bucket="torus-datasets-prod", Key=file_name)
-    content = response['Body'].read().decode('utf-8')
-
-    return json.loads(content)
-
-
 def to_xml_message(json, context): 
 
-    part_attempt = parse_attempt(json)
+    part_attempt = parse_attempt(json, context)
     part_attempt['activity_type'] = context['activities'].get(str(part_attempt['activity_id']), {'type': 'Unknown'})['type']
 
     context = expand_context(context, part_attempt)
@@ -104,68 +97,10 @@ def expand_context(context, part_attempt):
         'skill_ids': part_attempt['attached_objectives'],
         'total_hints_available': total_hints_available
     }
+    context.update(expanded)
 
-    return expanded
+    return context
 
-import random 
-import string
-
-def calculate_ancestors(context):
-
-    # We are given the hierarchy like this:
-    #'hierarchy': {
-    #            '152914': {'graded': True, 'title': 'Assessment 1'},
-    #            '24': {'title': 'Unit 1', 'children': [25]},
-    #            '25': {'title': 'Module 1', 'children': [152914]},
-    #        },
-    # 
-    # And this calculates an 'ancestors' list for each item in the hierarchy
-    # where the ancestors are the parents of the item
-
-    hierarchy = context['hierarchy']
-
-    # calculate the direct parent of each item and store it as 'parent'
-    for key, value in hierarchy.items():
-        for child in value.get('children', []):
-            hierarchy[str(child)]['parent'] = key
-
-    # calculate the ancestors of each item, by walking up the tree of parents
-    # until we reach a node that has no parent
-    for key, value in hierarchy.items():
-
-        ancestors = []
-        current = key
-
-        while 'parent' in hierarchy[current]:
-            current = hierarchy[current]['parent']
-            ancestors.append(int(current))
-
-        # reverse the ancestors
-        ancestors.reverse()
-        hierarchy[key]['ancestors'] = ancestors
-
-def mapify_parts(context):
-    activities = context['activities']
-    
-    for activity_id, activity in activities.items():
-        parts = activity.get('parts', [])
-        activity['parts'] = {}
-        # if parts is an array and not None
-        if parts is not None and isinstance(parts, list):
-            for part in parts:
-                # if part is an object:
-                if isinstance(part, dict):
-                    # if part has an 'id' field:
-                    part_id = part.get('id', None)
-
-                    if part_id is not None:
-                        # add the part to the parts map
-                        activity['parts'][part_id] = part
-                
-
-def post_process_datashop_context(context):
-    mapify_parts(context)
-    calculate_ancestors(context)
 
 def unique_id(part_attempt):
     return f"{part_attempt['activity_id']}-part{part_attempt['part_id']}-{random_string(8)}"
@@ -183,10 +118,10 @@ def today(part_attempt):
     date = timestamp.split('T')[0]
     return date + '-' + str(part_attempt['user_id'])
    
-def parse_attempt(value):
+def parse_attempt(value, context):
     return {
         'timestamp': value["timestamp"],
-        'user_id': value["actor"]["account"]["name"],
+        'user_id': determine_student_id(context, value),
         'section_id': value["context"]["extensions"]["http://oli.cmu.edu/extensions/section_id"],
         'project_id': value["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"],
         'publication_id': value["context"]["extensions"]["http://oli.cmu.edu/extensions/publication_id"],

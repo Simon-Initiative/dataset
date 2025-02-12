@@ -8,10 +8,12 @@ import os
 import argparse
 
 from dataset.keys import list_keys_from_inventory
-from dataset.utils import parallel_map, prune_fields, serial_map
+from dataset.utils import parallel_map, prune_fields, download_context
 from dataset.manifest import build_html_manifest, build_json_manifest
 from dataset.event_registry import get_event_config
-from dataset.datashop import handle_datashop, download_data_shop_context, post_process_datashop_context
+from dataset.datashop import handle_datashop
+from dataset.lookup import retrieve_lookup
+
 
 def generate_datashop(context):
     
@@ -34,11 +36,9 @@ def generate_datashop(context):
     print(f"Number of keys: {len(keys)}")
     print(f"Number of chunks: {number_of_chunks}")
 
-    # Retrieve the datashop job context
-    datashop_context = download_data_shop_context(s3_client, context)
-    post_process_datashop_context(datashop_context)
-
-    context['datashop_context'] = datashop_context
+    # Retrieve the datashop lookup context
+    lookup = retrieve_lookup(s3_client, context)
+    context['lookup'] = lookup
 
     # Every XML chunk should have the <?xml ?> directive and the
     # outermost tutor_related_message_sequence element
@@ -63,8 +63,8 @@ def generate_datashop(context):
         except Exception as e:
             print(f"Error processing chunk {chunk_index + 1}/{number_of_chunks}: {e}")
 
-    # Build and save JSON and HTML manifests
-    context['datashop_context'] = {}
+    # Build and save JSON and HTML manifests, resetting the lookup so we don't preserve it
+    context['lookup'] = {}
     build_manifests(s3_client, context, number_of_chunks, "xml")
 
     # Stop Spark context
@@ -93,6 +93,9 @@ def generate_dataset(section_ids, action, context):
     excluded_indices.sort(reverse=True)
     columns = prune_fields(columns, excluded_indices)
 
+    # Download the additional lookup information file
+    context["lookup"] = retrieve_lookup(s3_client, context)
+
     # Retrieve matching keys from S3 inventory
     keys = list_keys_from_inventory(section_ids, action, source_bucket, inventory_bucket)
     number_of_chunks = calculate_number_of_chunks(len(keys), chunk_size)
@@ -115,6 +118,7 @@ def generate_dataset(section_ids, action, context):
             print(f"Error processing chunk {chunk_index + 1}/{number_of_chunks}: {e}")
 
     # Build and save JSON and HTML manifests
+    context['lookup'] = {}
     build_manifests(s3_client, context, number_of_chunks, "csv")
 
     # Stop Spark context

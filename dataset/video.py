@@ -2,6 +2,7 @@ import json
 import boto3
 
 from dataset.utils import prune_fields
+from dataset.lookup import determine_student_id
 
 def video_handler(bucket_key, context, excluded_indices):
     # Use the key to read in the file contents, split on line endings
@@ -32,19 +33,19 @@ def video_handler(bucket_key, context, excluded_indices):
         if student_id not in context["ignored_student_ids"] and project_matches and page_matches:
             if short_verb in subtypes:
                 if short_verb == "played":
-                    o = from_played(j)
+                    o = from_played(j, context)
                     o = prune_fields(o, excluded_indices)
                     values.append(o)
                 elif short_verb == "paused":
-                    o = from_paused(j)
+                    o = from_paused(j, context)
                     o = prune_fields(o, excluded_indices)
                     values.append(o)
                 elif short_verb == "seeked":
-                    o = from_seeked(j)
+                    o = from_seeked(j, context)
                     o = prune_fields(o, excluded_indices)
                     values.append(o)
                 elif short_verb == "completed":
-                    o = from_completed(j)
+                    o = from_completed(j, context)
                     o = prune_fields(o, excluded_indices)
                     values.append(o)
             
@@ -52,11 +53,11 @@ def video_handler(bucket_key, context, excluded_indices):
     return values
         
 
-def from_played(value):
+def from_played(value, context):
     return [
         "played",
         value["timestamp"],
-        value["actor"]["account"]["name"],
+        determine_student_id(context, value),
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/section_id"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/publication_id"],
@@ -73,11 +74,11 @@ def from_played(value):
         None
     ]
 
-def from_paused(value):
+def from_paused(value, context):
     return [
         "paused",
         value["timestamp"],
-        value["actor"]["account"]["name"],
+        determine_student_id(context, value),
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/section_id"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/publication_id"],
@@ -94,11 +95,11 @@ def from_paused(value):
         value["result"]["extensions"]["https://w3id.org/xapi/video/extensions/progress"]
     ]
 
-def from_seeked(value):
+def from_seeked(value, context):
     return [
         "seeked",
         value["timestamp"],
-        value["actor"]["account"]["name"],
+        determine_student_id(context, value),
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/section_id"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/publication_id"],
@@ -115,11 +116,11 @@ def from_seeked(value):
         None
     ]
 
-def from_completed(value):
+def from_completed(value, context):
     return [
         "completed",
         value["timestamp"],
-        value["actor"]["account"]["name"],
+        determine_student_id(context, value),
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/section_id"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/publication_id"],

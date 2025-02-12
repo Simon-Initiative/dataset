@@ -2,6 +2,7 @@ import json
 import boto3
 
 from dataset.utils import encode_array, encode_json, prune_fields
+from dataset.lookup import determine_student_id
 
 def attempts_handler(bucket_key, context, excluded_indices):
     # Use the key to read in the file contents, split on line endings
@@ -29,15 +30,15 @@ def attempts_handler(bucket_key, context, excluded_indices):
         
         if student_id not in context["ignored_student_ids"] and project_matches and page_matches:
             if "part_attempt_evaluated" in subtypes and j["object"]["definition"]["type"] == "http://adlnet.gov/expapi/activities/question":
-                o = from_part_attempt(j)
+                o = from_part_attempt(j, context)
                 o = prune_fields(o, excluded_indices)
                 values.append(o)
             elif "activity_attempt_evaluated" in subtypes and j["object"]["definition"]["type"] == "http://oli.cmu.edu/extensions/activity_attempt":
-                o = from_activity_attempt(j)
+                o = from_activity_attempt(j, context)
                 o = prune_fields(o, excluded_indices)
                 values.append(o)
             elif "page_attempt_evaluated" in subtypes and j["object"]["definition"]["type"] == "http://oli.cmu.edu/extensions/page_attempt":
-                o = from_page_attempt(j)
+                o = from_page_attempt(j, context)
                 o = prune_fields(o, excluded_indices)
                 values.append(o)
 
@@ -45,11 +46,11 @@ def attempts_handler(bucket_key, context, excluded_indices):
     return values
         
 
-def from_part_attempt(value):
+def from_part_attempt(value, context):
     return [
         value["object"]["definition"]["name"]["en-US"],
         value["timestamp"],
-        value["actor"]["account"]["name"],
+        determine_student_id(context, value),
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/section_id"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/publication_id"],
@@ -71,11 +72,11 @@ def from_part_attempt(value):
         encode_array(value["context"]["extensions"]["http://oli.cmu.edu/extensions/hints_requested"]), #hints
     ]
 
-def from_activity_attempt(value):
+def from_activity_attempt(value, context):
     return [
         value["object"]["definition"]["name"]["en-US"],
         value["timestamp"],
-        value["actor"]["account"]["name"],
+        determine_student_id(context, value),
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/section_id"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/publication_id"],
@@ -97,11 +98,11 @@ def from_activity_attempt(value):
         None
     ]
 
-def from_page_attempt(value):
+def from_page_attempt(value, context):
     return [
         value["object"]["definition"]["name"]["en-US"],
         value["timestamp"],
-        value["actor"]["account"]["name"],
+        determine_student_id(context, value),
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/section_id"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/publication_id"],

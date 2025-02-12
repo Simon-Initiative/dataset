@@ -2,6 +2,7 @@ import json
 import boto3
 
 from dataset.utils import prune_fields
+from dataset.lookup import determine_student_id
 
 def page_viewed_handler(bucket_key, context, excluded_indices):
     # Use the key to read in the file contents, split on line endings
@@ -26,17 +27,17 @@ def page_viewed_handler(bucket_key, context, excluded_indices):
         page_matches = context["page_ids"] is None or j["context"]["extensions"]["http://oli.cmu.edu/extensions/page_id"] in context["page_ids"]
         
         if student_id not in context["ignored_student_ids"] and project_matches and page_matches:
-            o = from_page_viewed(j)
+            o = from_page_viewed(j, context)
             o = prune_fields(o, excluded_indices)
             values.append(o)
             
     return values
         
-def from_page_viewed(value):
+def from_page_viewed(value, context):
     return [
         "page_viewed",
         value["timestamp"],
-        value["actor"]["account"]["name"],
+        determine_student_id(context, value),
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/section_id"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"],
         value["context"]["extensions"]["http://oli.cmu.edu/extensions/publication_id"],
