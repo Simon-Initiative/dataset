@@ -21,7 +21,7 @@ def retrieve_lookup(s3_client, context):
 
 
 def determine_student_id(context, json):
-    if context['anonymize']:
+    if context['anonymize'] == True:
         return json["actor"]["account"]["name"]
     else:
         
