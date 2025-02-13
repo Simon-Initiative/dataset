@@ -27,7 +27,7 @@ if __name__ == "__main__":
     bucket_name = args.bucket_name
     inventory_bucket_name = bucket_name + "-inventory"
     chunk_size = int(args.chunk_size)
-    anonymize = args.anonymize if args.anonymize else True
+    anonymize = False if args.anonymize == "false" else True
     exclude_fields = [x for x in (args.exclude_fields.split(",") if args.exclude_fields else [])]
     
     if action == 'datashop' or args.page_ids == "all":
