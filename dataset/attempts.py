@@ -29,7 +29,7 @@ def attempts_handler(bucket_key, context, excluded_indices):
         page_matches = context["page_ids"] is None or j["context"]["extensions"]["http://oli.cmu.edu/extensions/page_id"] in context["page_ids"]
         
         if student_id not in context["ignored_student_ids"] and project_matches and page_matches:
-            if "part_attempt_evaluated" in subtypes and j["object"]["definition"]["type"] == "http://adlnet.gov/expapi/activities/question":
+            if (("part_attempt_evaluated" in subtypes) or ("part_attempt_evaluted" in subtypes)) and j["object"]["definition"]["type"] == "http://adlnet.gov/expapi/activities/question":
                 o = from_part_attempt(j, context)
                 o = prune_fields(o, excluded_indices)
                 values.append(o)
@@ -37,7 +37,7 @@ def attempts_handler(bucket_key, context, excluded_indices):
                 o = from_activity_attempt(j, context)
                 o = prune_fields(o, excluded_indices)
                 values.append(o)
-            elif "page_attempt_evaluated" in subtypes and j["object"]["definition"]["type"] == "http://oli.cmu.edu/extensions/page_attempt":
+            elif (("page_attempt_evaluated" in subtypes) or ("page_attempt_evaluted" in subtypes)) and j["object"]["definition"]["type"] == "http://oli.cmu.edu/extensions/page_attempt":
                 o = from_page_attempt(j, context)
                 o = prune_fields(o, excluded_indices)
                 values.append(o)
