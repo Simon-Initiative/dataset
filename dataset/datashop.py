@@ -21,6 +21,7 @@ def handle_datashop(bucket_key, context, excluded_indices):
     values = []
 
     lookup = context['lookup']
+    lookup['anonymize'] = context['anonymize']
 
     for line in content.splitlines():
         # parse one line of json
@@ -119,9 +120,12 @@ def today(part_attempt):
     return date + '-' + str(part_attempt['user_id'])
    
 def parse_attempt(value, context):
+
+    faux_full_context = { 'lookup': context, 'anonymize': context['anonymize'] }
+
     return {
         'timestamp': value["timestamp"],
-        'user_id': determine_student_id(context, value),
+        'user_id': determine_student_id(faux_full_context, value),
         'section_id': value["context"]["extensions"]["http://oli.cmu.edu/extensions/section_id"],
         'project_id': value["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"],
         'publication_id': value["context"]["extensions"]["http://oli.cmu.edu/extensions/publication_id"],
