@@ -13,7 +13,7 @@ def retrieve_lookup(s3_client, context):
     key = context['job_id']
     file_name = f"contexts/{key}.json"
 
-    response = s3_client.get_object(Bucket="torus-datasets-prod", Key=file_name)
+    response = s3_client.get_object(Bucket=context["results_bucket_name"], Key=file_name)
     content = response['Body'].read().decode('utf-8')
 
     parsed = json.loads(content)
