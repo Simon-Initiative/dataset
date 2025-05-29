@@ -4,7 +4,7 @@ def build_json_manifest(s3_client, context, num_chunks, extension):
 
     bucket = context["bucket_name"]
     job_id = context["job_id"]
-    prefix = f'https://torus-datasets-prod.s3.us-east-1.amazonaws.com/'
+    prefix = f'https://{context["results_bucket_name"]}.s3.us-east-1.amazonaws.com/'
 
     # Create a JSON object with the job ID and the list of chunks 
     # as URLs to the S3 objects
@@ -15,7 +15,7 @@ def build_json_manifest(s3_client, context, num_chunks, extension):
 
     # upload the manifest to S3 into the job_id directory:
     manifest_key = f'{job_id}/manifest.json'
-    s3_client.put_object(Bucket="torus-datasets-prod", Key=manifest_key, Body=json.dumps(manifest))
+    s3_client.put_object(Bucket=context["results_bucket_name"], Key=manifest_key, Body=json.dumps(manifest))
 
 
     return manifest_key
@@ -24,7 +24,7 @@ def build_html_manifest(s3_client, context, num_chunks, extension):
 
     bucket = context["bucket_name"]
     job_id = context["job_id"]
-    prefix = f'https://torus-datasets-prod.s3.us-east-1.amazonaws.com/'
+    prefix = f'https://{context["results_bucket_name"]}.s3.us-east-1.amazonaws.com/'
 
     # Create an HMTL string with a list of files
     html = "<!doctype html><html dir=\"ltr\" lang=\"en\"><head><title>Job Manifest</title></head><body><h1>Job Manifest</h1>"
@@ -46,6 +46,6 @@ def build_html_manifest(s3_client, context, num_chunks, extension):
 
     # upload the manifest to S3 into the job_id directory
     manifest_key = f'{job_id}/index.html'
-    s3_client.put_object(Bucket="torus-datasets-prod", Key=manifest_key, Body=html)
+    s3_client.put_object(Bucket=context["results_bucket_name"], Key=manifest_key, Body=html)
 
     return manifest_key

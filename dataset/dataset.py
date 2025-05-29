@@ -57,7 +57,7 @@ def generate_datashop(context):
             chunk_data = [chunk_prefix] + chunk_data + [chunk_suffix]
             
             # Save the collected results as an XML chunk to S3
-            save_xml_chunk(chunk_data, s3_client, target_prefix, chunk_index)
+            save_xml_chunk(chunk_data, s3_client, target_prefix, chunk_index, results_bucket_name=context["results_bucket_name"])
             print(f"Successfully processed chunk {chunk_index + 1}/{number_of_chunks}")
 
         except Exception as e:
@@ -111,7 +111,7 @@ def generate_dataset(section_ids, action, context):
             chunk_data = parallel_map(sc, source_bucket, chunk_keys, event_jsonl_processor, context, excluded_indices)
             
             # Save the collected results as a CSV file to S3
-            save_chunk_to_s3(chunk_data, columns, s3_client, target_prefix, chunk_index)
+            save_chunk_to_s3(chunk_data, columns, s3_client, target_prefix, chunk_index, results_bucket_name=context["results_bucket_name"])
             print(f"Successfully processed chunk {chunk_index + 1}/{number_of_chunks}")
 
         except Exception as e:
@@ -145,22 +145,22 @@ def chunkify(lst, chunk_size):
     for i in range(0, len(lst), chunk_size):
         yield lst[i:i + chunk_size]
 
-def save_chunk_to_s3(chunk_data, columns, s3_client, target_prefix, chunk_index):
+def save_chunk_to_s3(chunk_data, columns, s3_client, target_prefix, chunk_index, results_bucket_name):
     """Save a DataFrame as a CSV file to S3."""
 
     df = pd.DataFrame(chunk_data, columns=columns)
     csv_buffer = io.StringIO()
     df.to_csv(csv_buffer, index=False)
     chunk_key = f'{target_prefix}chunk_{chunk_index}.csv'
-    s3_client.put_object(Bucket="torus-datasets-prod", Key=chunk_key, Body=csv_buffer.getvalue())
+    s3_client.put_object(Bucket=results_bucket_name, Key=chunk_key, Body=csv_buffer.getvalue())
 
-def save_xml_chunk(chunk_data, s3_client, target_prefix, chunk_index):
+def save_xml_chunk(chunk_data, s3_client, target_prefix, chunk_index, results_bucket_name):
     
     # concatenate the strings in the list
     xml_string = '\n'.join(chunk_data)
 
     chunk_key = f'{target_prefix}chunk_{chunk_index}.xml'
-    s3_client.put_object(Bucket="torus-datasets-prod", Key=chunk_key, Body=xml_string)
+    s3_client.put_object(Bucket=results_bucket_name, Key=chunk_key, Body=xml_string)
 
 
 def build_manifests(s3_client, context, number_of_chunks, extension):

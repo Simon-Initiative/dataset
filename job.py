@@ -7,6 +7,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="PySpark Job with Parameters")
     parser.add_argument("--bucket_name", required=True, help="S3 Bucket Name")
+    parser.add_argument("--results_bucket_name", required=False, help="Dataset results S3 Bucket Name")
     parser.add_argument("--action", required=True, help="Dataformat Export Type")
     parser.add_argument("--job_id", required=True, help="Job id")
     parser.add_argument("--section_ids", required=True, help="Course Section Ids")
@@ -27,6 +28,9 @@ if __name__ == "__main__":
     bucket_name = args.bucket_name
     inventory_bucket_name = bucket_name + "-inventory"
     chunk_size = int(args.chunk_size)
+
+    results_bucket_name = args.results_bucket_name if args.results_bucket_name else "torus-datasets-prod"
+
     anonymize = False if args.anonymize == "false" else True
     exclude_fields = [x for x in (args.exclude_fields.split(",") if args.exclude_fields else [])]
     
@@ -41,6 +45,7 @@ if __name__ == "__main__":
     context = {
         "bucket_name": bucket_name,
         "inventory_bucket_name": inventory_bucket_name,
+        "results_bucket_name": results_bucket_name,
         "job_id": args.job_id,
         "ignored_student_ids": ignored_student_ids,
         "chunk_size": chunk_size,
