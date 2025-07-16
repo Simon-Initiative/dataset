@@ -9,7 +9,7 @@
     "context": {
       "extensions": {
         "http://oli.cmu.edu/extensions/activity_attempt_guid": "db1aef4f-10d1-4a9f-bfa2-1f675292b0c4",
-        "http://oli.cmu.edu/extensions/activity_attempt_number": 1,
+        "http://oli.cmu.edu/extensions/activity_attempt_number": 2,
         "http://oli.cmu.edu/extensions/activity_id": 162143,
         "http://oli.cmu.edu/extensions/activity_revision_id": 378595,
         "http://oli.cmu.edu/extensions/attached_objectives": [
@@ -71,7 +71,7 @@
       },
       "success": true
     },
-    "timestamp": "2024-09-02T18:24:33Z",
+    "timestamp": "2024-09-02T18:28:33Z",
     "verb": {
       "display": {
         "en-US": "completed"

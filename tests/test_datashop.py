@@ -1,5 +1,6 @@
 import unittest
-from dataset.datashop import to_xml_message, post_process_datashop_context
+from dataset.datashop import to_xml_message
+from dataset.lookup import post_process
 import json
 
 class TestDatashop(unittest.TestCase):
@@ -8,7 +9,10 @@ class TestDatashop(unittest.TestCase):
 
         # read the test.json file from this dir
         with open('tests/test.json') as f:
-            data = json.load(f)
+            data1 = json.load(f)
+
+        with open('tests/attempt2.json') as f:
+            data2 = json.load(f)
 
         # create a fake context
         context = {
@@ -21,6 +25,7 @@ class TestDatashop(unittest.TestCase):
                 '24': {'title': 'Unit 1', 'children': [25]},
                 '25': {'title': 'Module 1', 'children': [152914]},
             },
+            'anonymize': True,
             'activities': {
                 '162143': {
                     'choices': [
@@ -42,11 +47,18 @@ class TestDatashop(unittest.TestCase):
             }
         }
         
-        post_process_datashop_context(context)
+        post_process(context)
         # call the from_part_attempt function with the data
-        result = to_xml_message(data, context)
-        print(result)
-
+        result1 = to_xml_message(data1, context)
+        result2 = to_xml_message(data2, context)
+        
+         # write xml to file
+        with open('tests/output.xml', 'w') as f:
+            f.write('<?xml version= \"1.0\" encoding= \"UTF-8\"?>\n')
+            f.write('<tutor_related_message_sequence version_number= \"4\" xmlns:xsi= \"http://www.w3.org/2001/XMLSchema-instance\" xsi:noNamespaceSchemaLocation= \"http://pslcdatashop.org/dtd/tutor_message_v4.xsd\">\n')
+            f.write(result1)
+            f.write(result2)
+            f.write('\n</tutor_related_message_sequence>')
 
 if __name__ == '__main__':
     unittest.main()
