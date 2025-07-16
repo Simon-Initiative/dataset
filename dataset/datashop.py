@@ -6,6 +6,11 @@ import string
 
 from dataset.lookup import determine_student_id
 
+import re
+
+def unescape_numeric_entities(xml_str: str) -> str:
+    # This restores &#x...; and &#...; sequences that were escaped
+    return re.sub(r"&amp;(#x[0-9A-Fa-f]+;|#[0-9]+;)", r"&\1", xml_str)
 
 def handle_datashop(bucket_key, context, excluded_indices):
     bucket_name, key = bucket_key
@@ -43,20 +48,25 @@ def to_xml_message(json, context):
     part_attempt['activity_type'] = context['activities'].get(str(part_attempt['activity_id']), {'type': 'Unknown'})['type']
 
     context = expand_context(context, part_attempt)
-
-    c_message = context_message("START_PROBLEM", context)
+    
     hint_message_pairs = create_hint_message_pairs(part_attempt, context)
 
     # Attempt / Result pairs must have a different transaction ID from the hint message pairs
     context["transaction_id"] = unique_id(part_attempt)
 
-    all = [c_message] + hint_message_pairs + [
+    all = hint_message_pairs + [
         tool_message("ATTEMPT", "ATTEMPT", context),
         tutor_message("RESULT", context)
     ]
 
+    # preface all messages with a START_PROBLEM only when it is the first activity and part attempt:
+    if part_attempt['part_attempt_number'] == 1 and part_attempt['activity_attempt_number'] == 1:
+        c_message = context_message("START_PROBLEM", context)
+        all.insert(0, c_message)
+
     # concatenate all the messages to a single string
-    return "\n".join(all)
+    joined = "\n".join(all)
+    return unescape_numeric_entities(joined)
 
 
 def expand_context(context, part_attempt):
@@ -148,6 +158,36 @@ def parse_attempt(value, context):
         'feedback': value["result"]["extensions"]["http://oli.cmu.edu/extensions/feedback"], #feedback
     }
 
+def sanitize_element_text(text: str) -> str:
+    if not text:
+        return ""
+
+    def encode_char(c):
+        codepoint = ord(c)
+        if codepoint > 0xFFFF:
+            return ""  # Remove characters beyond the BMP
+        elif codepoint > 127:
+            return f"&#x{codepoint:X};"  # Escape non-ASCII within BMP
+        return c  # Leave ASCII alone
+
+    return ''.join(encode_char(c) for c in text)
+
+
+def sanitize_attribute_value(text: str) -> str:
+    if not text:
+        return ""
+
+    def encode_char(c):
+        codepoint = ord(c)
+        if codepoint > 0xFFFF:
+            return ""  # Remove characters beyond the BMP
+        elif codepoint > 127:
+            return f"&#x{codepoint:X};"
+        return c
+
+    return ''.join(encode_char(c) for c in text)
+
+
 def create_hint_message_pairs(part_attempt, context):
     """
     Creates a list of hint messages for the part_attempt.
@@ -217,7 +257,7 @@ def tutor_message(message_type, context):
     <event_descriptor>, <action_evaluation>, and optionally <tutor_advice> and <skills>.
     """
     tutor_message_elem = ET.Element("tutor_message", {
-        "context_message_id": context.get("context_message_id", "Unknown")
+        "context_message_id": sanitize_attribute_value(context.get("context_message_id", "Unknown"))
     })
 
     # Add nested elements
@@ -242,7 +282,7 @@ def tool_message(event_descriptor_type, semantic_event_type, context):
     Creates a <tool_message> XML element with nested <meta>, <problem_name>, <semantic_event>, and <event_descriptor>.
     """
     tool_message_elem = ET.Element("tool_message", {
-        "context_message_id": context.get("context_message_id", "Unknown")
+        "context_message_id": sanitize_attribute_value(context.get("context_message_id", "Unknown"))
     })
 
     # Add nested elements
@@ -261,8 +301,8 @@ def context_message(name, context):
     context_elem = ET.Element(
         "context_message",
         attrib={
-            "context_message_id": context.get("context_message_id", "Unknown"),
-            "name": name,
+            "context_message_id": sanitize_attribute_value(context.get("context_message_id", "Unknown")),
+            "name": sanitize_attribute_value(name),
         },
     )
 
@@ -279,7 +319,7 @@ def tutor_advice(context):
     Creates a <tutor_advice> XML element with the provided hint_text.
     """
     tutor_advice_elem = ET.Element("tutor_advice")
-    tutor_advice_elem.text = context.get("hint_text", "Unknown Hint")
+    tutor_advice_elem.text = sanitize_element_text(context.get("hint_text", "Unknown Hint"))
     return tutor_advice_elem
 
 
@@ -294,7 +334,7 @@ def skills(context):
     for skill_id in skill_ids:
         skill_title = skill_titles.get(str(skill_id), "Unknown")
         skill_elem = ET.Element("skill")
-        ET.SubElement(skill_elem, "name").text = skill_title
+        ET.SubElement(skill_elem, "name").text = sanitize_element_text(skill_title)
         skill_elements.append(skill_elem)
 
     return skill_elements
@@ -305,8 +345,8 @@ def semantic_event(event_type, context):
     Creates a <semantic_event> XML element with transaction_id and name attributes.
     """
     semantic_event_elem = ET.Element("semantic_event", {
-        "transaction_id": context.get("transaction_id", "Unknown"),
-        "name": event_type
+        "transaction_id": sanitize_attribute_value(context.get("transaction_id", "Unknown")),
+        "name": sanitize_attribute_value(event_type)
     })
     return semantic_event_elem
 
@@ -327,7 +367,7 @@ def problem_name(context):
         text = "Unknown"
 
     element = ET.Element("problem_name")
-    element.text = text
+    element.text = sanitize_element_text(text)
     return element
 
 
@@ -336,10 +376,10 @@ def meta(context):
     Creates the <meta> element for the context message.
     """
     meta_elem = ET.Element("meta")
-    ET.SubElement(meta_elem, "user_id").text = context.get("user_id", "Unknown")
-    ET.SubElement(meta_elem, "session_id").text = context.get("session_id", "Unknown")
-    ET.SubElement(meta_elem, "time").text = format_time(context.get("time"))
-    ET.SubElement(meta_elem, "time_zone").text = context.get("time_zone", "GMT")
+    ET.SubElement(meta_elem, "user_id").text = sanitize_element_text(context.get("user_id", "Unknown"))
+    ET.SubElement(meta_elem, "session_id").text = sanitize_element_text(context.get("session_id", "Unknown"))
+    ET.SubElement(meta_elem, "time").text = sanitize_element_text(format_time(context.get("time")))
+    ET.SubElement(meta_elem, "time_zone").text = sanitize_element_text(context.get("time_zone", "GMT"))
 
     return meta_elem
 
@@ -374,13 +414,13 @@ def action_evaluation(context):
 
     if current_hint_number is not None and total_hints_available is not None:
         element = ET.Element("action_evaluation", attrib={
-            "current_hint_number": str(current_hint_number),
-            "total_hints_available": str(total_hints_available)
+            "current_hint_number": sanitize_attribute_value(str(current_hint_number)),
+            "total_hints_available": sanitize_attribute_value(str(total_hints_available))
         })
         element.text = "HINT"
     elif part_attempt:
         element = ET.Element("action_evaluation")
-        element.text = correctness(part_attempt)
+        element.text = sanitize_element_text(correctness(part_attempt))
     else:
         raise ValueError("Invalid context: Missing hint details or part_attempt.")
 
@@ -557,7 +597,7 @@ def create_element(tag, text):
     Helper function to create an XML element with text content.
     """
     element = ET.Element(tag)
-    element.text = text
+    element.text = sanitize_element_text(text)
     return element
 
 
@@ -566,7 +606,11 @@ def dataset(context):
     Creates the <dataset> element for the context message.
     """
     dataset_elem = ET.Element("dataset")
-    ET.SubElement(dataset_elem, "name").text = context.get("dataset_name", "Unknown")
+
+    # Ensure max 100 characters
+    trimmed_text = context.get("dataset_name", "Unknown").strip()[:100]
+
+    ET.SubElement(dataset_elem, "name").text = sanitize_element_text(trimmed_text)
     problem_hierarchy = create_problem_hierarchy(context)
     dataset_elem.append(problem_hierarchy)
 
@@ -594,14 +638,14 @@ def assemble_from_hierarchy_path(page_id, problem_name, hierarchy):
     """
     def page_to_element(revision):
         level_elem = ET.Element("level", {"type": "Page"})
-        ET.SubElement(level_elem, "name").text = revision["title"]
-        problem_elem = ET.SubElement(level_elem, "problem", {"tutorFlag": tutor_or_test(revision["graded"])})
-        ET.SubElement(problem_elem, "name").text = problem_name
+        ET.SubElement(level_elem, "name").text = sanitize_element_text(revision["title"])
+        problem_elem = ET.SubElement(level_elem, "problem", {"tutorFlag": sanitize_attribute_value(tutor_or_test(revision["graded"]))})
+        ET.SubElement(problem_elem, "name").text = sanitize_element_text(problem_name)
         return level_elem
 
     def container_to_element(revision, child):
         container_elem = ET.Element("level", {"type": "Container"})
-        ET.SubElement(container_elem, "name").text = revision["title"]
+        ET.SubElement(container_elem, "name").text = sanitize_element_text(revision["title"])
         container_elem.append(child)
         return container_elem
 
