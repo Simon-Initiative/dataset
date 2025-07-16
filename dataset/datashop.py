@@ -656,14 +656,14 @@ def assemble_from_hierarchy_path(page_id, problem_name, hierarchy):
     """
     def page_to_element(revision):
         level_elem = ET.Element("level", {"type": "Page"})
-        ET.SubElement(level_elem, "name").text = sanitize_element_text(revision["title"])
+        ET.SubElement(level_elem, "name").text = trim_to_100_bytes(sanitize_element_text(revision["title"]))
         problem_elem = ET.SubElement(level_elem, "problem", {"tutorFlag": sanitize_attribute_value(tutor_or_test(revision["graded"]))})
         ET.SubElement(problem_elem, "name").text = sanitize_element_text(problem_name)
         return level_elem
 
     def container_to_element(revision, child):
         container_elem = ET.Element("level", {"type": "Container"})
-        ET.SubElement(container_elem, "name").text = sanitize_element_text(revision["title"])
+        ET.SubElement(container_elem, "name").text = trim_to_100_bytes(sanitize_element_text(revision["title"]))
         container_elem.append(child)
         return container_elem
 
