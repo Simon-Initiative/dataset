@@ -1,9 +1,14 @@
 import unittest
-from dataset.datashop import to_xml_message
+from dataset.datashop import to_xml_message, trim_to_100_bytes
 from dataset.lookup import post_process
+
 import json
 
 class TestDatashop(unittest.TestCase):
+
+    def test_trim_to_100_bytes(self):
+        self.assertEqual(trim_to_100_bytes("1234567890" * 10), "1234567890" * 10)
+        self.assertEqual(trim_to_100_bytes("1234567890" * 10 + "1234567890"), "1234567890" * 10)
 
     def test_from_part_attempt(self):
 

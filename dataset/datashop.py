@@ -608,13 +608,31 @@ def dataset(context):
     dataset_elem = ET.Element("dataset")
 
     # Ensure max 100 characters
-    trimmed_text = context.get("dataset_name", "Unknown").strip()[:100]
+    trimmed_text = trim_to_100_bytes(context.get("dataset_name", "Unknown").strip())
 
     ET.SubElement(dataset_elem, "name").text = sanitize_element_text(trimmed_text)
     problem_hierarchy = create_problem_hierarchy(context)
     dataset_elem.append(problem_hierarchy)
 
     return dataset_elem
+
+def trim_to_100_bytes(s: str) -> str:
+    encoded = s.encode("utf-8")
+    if len(encoded) <= 100:
+        return s
+
+    # Trim from the string character by character
+    trimmed = []
+    byte_count = 0
+
+    for c in s:
+        c_bytes = c.encode("utf-8")
+        if byte_count + len(c_bytes) > 100:
+            break
+        trimmed.append(c)
+        byte_count += len(c_bytes)
+
+    return ''.join(trimmed)
 
 
 def create_problem_hierarchy(context):
