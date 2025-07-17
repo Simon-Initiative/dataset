@@ -56,4 +56,3 @@ The dependencies needed by code executed by worker and executor nodes in PySpark
 this image may need to be updated as we expand the feature set. The
 Dockerfile is present at `config/Dockerfile` and the script 
 `update_image.sh` automates the building and deployment of it. 
-
