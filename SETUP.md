@@ -2,7 +2,8 @@
 
 ## Create AWS S3 Buckets
 
-Create a bucket to store the created datasets.  
+Create a bucket to store the created datasets.  This bucket and all of its contents will 
+need to be publicly accessible.  
 
 Deploy `job.py` and `dataset.zip` into locations into locations in S3.  The `deploy_prod.sh` and `deploy_test.sh` show how to do this for OLI specific infrastructure.
 
