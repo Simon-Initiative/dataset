@@ -8,6 +8,10 @@ from dataset.lookup import determine_student_id
 
 import re
 
+global_context = {
+    'last_good_context_message_id': None
+}
+
 def unescape_numeric_entities(xml_str: str) -> str:
     # This restores &#x...; and &#...; sequences that were escaped
     return re.sub(r"&amp;(#x[0-9A-Fa-f]+;|#[0-9]+;)", r"&\1", xml_str)
@@ -27,6 +31,8 @@ def handle_datashop(bucket_key, context, excluded_indices):
 
     lookup = context['lookup']
     lookup['anonymize'] = context['anonymize']
+
+    global_context["last_good_context_message_id"] = None
 
     for line in content.splitlines():
         # parse one line of json
@@ -48,21 +54,23 @@ def to_xml_message(json, context):
     part_attempt['activity_type'] = context['activities'].get(str(part_attempt['activity_id']), {'type': 'Unknown'})['type']
 
     context = expand_context(context, part_attempt)
+
+    all = []
+
+     # preface all messages with a START_PROBLEM only when it is the first activity and part attempt:
+    if (part_attempt['part_attempt_number'] == 1 and part_attempt['activity_attempt_number'] == 1) or global_context["last_good_context_message_id"] is None:
+        c_message = context_message("START_PROBLEM", context)
+        all.append(c_message)
     
     hint_message_pairs = create_hint_message_pairs(part_attempt, context)
-
+   
     # Attempt / Result pairs must have a different transaction ID from the hint message pairs
     context["transaction_id"] = unique_id(part_attempt)
 
-    all = hint_message_pairs + [
+    all = all + hint_message_pairs + [
         tool_message("ATTEMPT", "ATTEMPT", context),
         tutor_message("RESULT", context)
     ]
-
-    # preface all messages with a START_PROBLEM only when it is the first activity and part attempt:
-    if part_attempt['part_attempt_number'] == 1 and part_attempt['activity_attempt_number'] == 1:
-        c_message = context_message("START_PROBLEM", context)
-        all.insert(0, c_message)
 
     # concatenate all the messages to a single string
     joined = "\n".join(all)
@@ -257,7 +265,7 @@ def tutor_message(message_type, context):
     <event_descriptor>, <action_evaluation>, and optionally <tutor_advice> and <skills>.
     """
     tutor_message_elem = ET.Element("tutor_message", {
-        "context_message_id": sanitize_attribute_value(context.get("context_message_id", "Unknown"))
+        "context_message_id": sanitize_attribute_value(global_context.get("last_good_context_message_id", "Unknown"))
     })
 
     # Add nested elements
@@ -282,7 +290,7 @@ def tool_message(event_descriptor_type, semantic_event_type, context):
     Creates a <tool_message> XML element with nested <meta>, <problem_name>, <semantic_event>, and <event_descriptor>.
     """
     tool_message_elem = ET.Element("tool_message", {
-        "context_message_id": sanitize_attribute_value(context.get("context_message_id", "Unknown"))
+        "context_message_id": sanitize_attribute_value(global_context.get("last_good_context_message_id", "Unknown"))
     })
 
     # Add nested elements
@@ -305,6 +313,8 @@ def context_message(name, context):
             "name": sanitize_attribute_value(name),
         },
     )
+
+    global_context["last_good_context_message_id"] = context.get("context_message_id", "Unknown")
 
     # Add <meta> and <dataset> elements
     context_elem.append(meta(context))
