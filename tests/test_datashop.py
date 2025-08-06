@@ -1,5 +1,5 @@
 import unittest
-from dataset.datashop import to_xml_message, trim_to_100_bytes
+from dataset.datashop import to_xml_message, trim_to_100_bytes, parse_attempt
 from dataset.lookup import post_process
 
 import json
@@ -54,8 +54,12 @@ class TestDatashop(unittest.TestCase):
         
         post_process(context)
         # call the from_part_attempt function with the data
-        result1 = to_xml_message(data1, context)
-        result2 = to_xml_message(data2, context)
+
+        pa1 = parse_attempt(data1, context)
+        pa2 = parse_attempt(data2, context)
+
+        result1 = to_xml_message(pa1, context)
+        result2 = to_xml_message(pa2, context)
         
          # write xml to file
         with open('tests/output.xml', 'w') as f:

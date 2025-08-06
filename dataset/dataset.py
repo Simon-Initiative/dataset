@@ -11,7 +11,7 @@ from dataset.keys import list_keys_from_inventory
 from dataset.utils import parallel_map, prune_fields
 from dataset.manifest import build_html_manifest, build_json_manifest
 from dataset.event_registry import get_event_config
-from dataset.datashop import handle_datashop
+from dataset.datashop import handle_datashop, process_jsonl_file, process_part_attempts
 from dataset.lookup import retrieve_lookup
 
 
@@ -40,6 +40,45 @@ def generate_datashop(context):
     lookup = retrieve_lookup(s3_client, context)
     context['lookup'] = lookup
 
+    
+    # Process keys in chunks, serially
+    all_part_attempts = []
+    for chunk_index, chunk_keys in enumerate(chunkify(keys, chunk_size)):
+        try:
+            # Process keys in parallel to 
+            part_attempts = parallel_map(sc, source_bucket, chunk_keys, process_jsonl_file, context, [])
+            all_part_attempts.extend(part_attempts)
+
+        except Exception as e:
+            print(f"Error processing chunk {chunk_index + 1}/{number_of_chunks}: {e}")
+
+    # partition the all_part_attempts list into a Dict
+    # where the keys are section_id + "_" + user_id, and the 
+    # values are lists of part_attempts
+    partitioned_part_attempts = {}
+    for part_attempt in all_part_attempts:
+        key = str(part_attempt.get('section_id', '')) + "_" + str(part_attempt.get('user_id', '')) + "_" + str(part_attempt.get('session_id', ''))
+        
+        if key not in partitioned_part_attempts:
+            partitioned_part_attempts[key] = []
+        partitioned_part_attempts[key].append(part_attempt)
+
+    # For each key in the partitioned_part_attempts dict, sort the list of part_attempts
+
+    all_results = []
+    for key in partitioned_part_attempts:
+        partitioned_part_attempts[key].sort(key=lambda x: (
+            x.get('page_attempt_guid', ''),
+            x.get('activity_id', ''),
+            x.get('activity_attempt_number', 0),
+            x.get('part_id', ''),
+            x.get('part_attempt_number', 0)
+        ))
+
+        results = process_part_attempts(partitioned_part_attempts[key], context)
+        all_results.extend(results)
+
+    
     # Every XML chunk should have the <?xml ?> directive and the
     # outermost tutor_related_message_sequence element
     chunk_prefix =  """<?xml version= \"1.0\" encoding= \"UTF-8\"?>
@@ -48,13 +87,9 @@ def generate_datashop(context):
     chunk_suffix = "</tutor_related_message_sequence>"
 
     # Process keys in chunks, serially
-    for chunk_index, chunk_keys in enumerate(chunkify(keys, chunk_size)):
+    for chunk_index, chunked_results in enumerate(chunkify(all_results, chunk_size)):
         try:
-            # Process keys in parallel to 
-            chunk_data = parallel_map(sc, source_bucket, chunk_keys, handle_datashop, context, [])
-            #chunk_data = serial_map(source_bucket, chunk_keys, handle_datashop, context, [])
-
-            chunk_data = [chunk_prefix] + chunk_data + [chunk_suffix]
+            chunk_data = [chunk_prefix] + chunked_results + [chunk_suffix]
             
             # Save the collected results as an XML chunk to S3
             save_xml_chunk(chunk_data, s3_client, target_prefix, chunk_index, results_bucket_name=context["results_bucket_name"])
