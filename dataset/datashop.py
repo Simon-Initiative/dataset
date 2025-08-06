@@ -48,9 +48,59 @@ def handle_datashop(bucket_key, context, excluded_indices):
             
     return values
 
-def to_xml_message(json, context): 
 
-    part_attempt = parse_attempt(json, context)
+
+def process_part_attempts(part_attempts, context):
+    
+    values = []
+
+    lookup = context['lookup']
+    lookup['anonymize'] = context['anonymize']
+
+    global_context["last_good_context_message_id"] = None
+
+    for part_attempt in part_attempts:
+        o = to_xml_message(part_attempt, lookup)
+        values.append(o)
+            
+    return values
+
+def process_jsonl_file(bucket_key, context, excluded_indices):
+    bucket_name, key = bucket_key
+
+    # Create a session using the specified profile
+    s3_client = boto3.client('s3')
+    
+    response = s3_client.get_object(Bucket=bucket_name, Key=key)
+
+    # Read the contents of the file
+    content = response['Body'].read().decode('utf-8')
+
+    values = []
+
+    lookup = context['lookup']
+    lookup['anonymize'] = context['anonymize']
+
+    for line in content.splitlines():
+        # parse one line of json
+        j = json.loads(line)
+
+        student_id = j["actor"]["account"]["name"]
+        project_matches = context["project_id"] is None or context["project_id"] == j["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"]
+        
+        if student_id not in context["ignored_student_ids"] and project_matches:
+            if j["object"]["definition"]["type"] == "http://adlnet.gov/expapi/activities/question":
+            
+                part_attempt = parse_attempt(j, lookup)
+                part_attempt['activity_type'] = lookup['activities'].get(str(part_attempt['activity_id']), {'type': 'Unknown'})['type']
+                datashop_session_id = part_attempt['datashop_session_id'] if 'datashop_session_id' in part_attempt else today(part_attempt)
+                part_attempt['session_id'] = datashop_session_id
+                values.append(part_attempt)
+            
+    return values
+
+def to_xml_message(part_attempt, context): 
+
     part_attempt['activity_type'] = context['activities'].get(str(part_attempt['activity_id']), {'type': 'Unknown'})['type']
 
     context = expand_context(context, part_attempt)
