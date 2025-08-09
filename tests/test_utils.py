@@ -1,5 +1,5 @@
 import unittest
-from dataset.utils import encode_array, encode_json
+from dataset.utils import encode_array, encode_json, prune_fields
 
 class TestUtils(unittest.TestCase):
 
@@ -19,6 +19,11 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(encode_json([]), '"[]"')
         self.assertEqual(encode_json({"key": "value\nwith\nnewlines"}), '"{"key":"value\\nwith\\nnewlines"}"')
         self.assertEqual(encode_json({"key": 'value with "quotes"'}), '"{"key":"value with \\"quotes\\""}"')
+
+    def test_prune_fields_removes_correct_indices(self):
+        record = [0, 1, 2, 3, 4]
+        # removing indices 1 and 3 should remove the values 1 and 3
+        self.assertEqual(prune_fields(record, [1, 3]), [0, 2, 4])
 
 if __name__ == '__main__':
     unittest.main()
