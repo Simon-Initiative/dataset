@@ -29,7 +29,14 @@ def parallel_map(sc, bucket_name, keys, map_func, context, columns):
     return results
 
 def prune_fields(record, excluded_indices):
-    for index in excluded_indices:
+    """Remove fields at the specified indices from ``record``.
+
+    ``excluded_indices`` may be in any order. Deleting items from a list by
+    index causes later indices to shift, so we delete from the highest index to
+    the lowest to ensure the correct elements are removed.
+    """
+
+    for index in sorted(excluded_indices, reverse=True):
         del record[index]
     return record
 
