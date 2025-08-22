@@ -1,0 +1,15 @@
+{
+  "name": "dataset-processing",
+  "version": "1.0.0",
+  "description": "PySpark dataset processing for educational analytics",
+  "scripts": {
+    "test": "source env/bin/activate && python -m unittest tests.test_utils tests.test_event_registry tests.test_lookup tests.test_manifest tests.test_keys -v",
+    "test:all": "source env/bin/activate && python -m unittest discover tests -v",
+    "test:utils": "source env/bin/activate && python -m unittest tests.test_utils -v",
+    "test:core": "source env/bin/activate && python -m unittest tests.test_utils tests.test_event_registry tests.test_lookup tests.test_manifest tests.test_keys -v",
+    "setup": "python -m venv env && source env/bin/activate && pip install -r requirements.txt"
+  },
+  "keywords": ["pyspark", "analytics", "data-processing"],
+  "author": "Your Team",
+  "license": "MIT"
+}
