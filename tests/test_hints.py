@@ -1,5 +1,5 @@
 import unittest
-from dataset.datashop import to_xml_message, post_process_datashop_context
+from dataset.datashop import to_xml_message
 import json
 
 
@@ -12,7 +12,6 @@ class TestDatashop(unittest.TestCase):
         # read the test.json file from this dir
         with open('tests/1299.json') as f:
             context = json.load(f)
-        post_process_datashop_context(context)
 
         with open('tests/evaluated.json') as f:
             data = json.load(f)
