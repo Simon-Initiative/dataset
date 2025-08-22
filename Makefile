@@ -2,25 +2,28 @@
 
 .PHONY: test test-core test-all test-coverage help
 
+# Python command (uses virtual env if available, otherwise system python)
+PYTHON_CMD = $(shell if [ -d "env" ]; then echo "source env/bin/activate &&"; fi) python
+
 # Activate virtual environment and run core tests
 test-core:
 	@echo "Running core module tests..."
-	source env/bin/activate && python -m unittest tests.test_utils tests.test_event_registry tests.test_lookup tests.test_manifest tests.test_keys -v
+	$(PYTHON_CMD) -m unittest tests.test_utils tests.test_event_registry tests.test_lookup tests.test_manifest tests.test_keys -v
 
 # Run all tests
 test-all:
 	@echo "Running all tests..."
-	source env/bin/activate && python -m unittest discover tests -v
+	$(PYTHON_CMD) -m unittest discover tests -v
 
 # Run specific test module
 test-utils:
-	source env/bin/activate && python -m unittest tests.test_utils -v
+	$(PYTHON_CMD) -m unittest tests.test_utils -v
 
 test-lookup:
-	source env/bin/activate && python -m unittest tests.test_lookup -v
+	$(PYTHON_CMD) -m unittest tests.test_lookup -v
 
 test-datashop:
-	source env/bin/activate && python -m unittest tests.test_datashop -v
+	$(PYTHON_CMD) -m unittest tests.test_datashop -v
 
 # Default test command
 test: test-core
