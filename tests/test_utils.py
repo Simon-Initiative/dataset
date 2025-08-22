@@ -53,21 +53,12 @@ class TestUtils(unittest.TestCase):
         expected = ["processed_key1", "processed_key2"]
         self.assertEqual(result, expected)
 
-    def test_prune_fields(self):
-        record = ["field1", "field2", "field3", "field4", "field5"]
-        excluded_indices = [1, 3]  # Remove field2 and field4
-        
-        result = prune_fields(record.copy(), excluded_indices)
-        
-        # Note: prune_fields modifies in place and removes from highest index first
-        # So with indices [1, 3], it should remove index 3 first, then index 1
-        # After removing index 3 (field4): ["field1", "field2", "field3", "field5"]  
-        # After removing index 1 (field2): ["field1", "field3", "field5"]
-        expected = ["field1", "field3", "field5"]
-        # But based on the actual implementation, let's check what it actually does
-        # The actual result seems to be removing index 1 and 3 from original positions
-        # Let's verify the actual behavior first
-        self.assertIsInstance(result, list)
+    def test_prune_fields_removes_correct_indices(self):
+        record = [0, 1, 2, 3, 4]
+        # removing indices 1 and 3 should remove the values 1 and 3
+        # prune_fields sorts indices in reverse order and removes from highest to lowest
+        result = prune_fields(record.copy(), [1, 3])
+        self.assertEqual(result, [0, 2, 4])
 
     def test_prune_fields_empty_indices(self):
         record = ["field1", "field2", "field3"]
