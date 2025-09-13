@@ -1,0 +1,86 @@
+{
+    "actor": {
+      "account": {
+        "homePage": "proton.oli.cmu.edu",
+        "name": 29252
+      },
+      "objectType": "Agent"
+    },
+    "context": {
+      "extensions": {
+        "http://oli.cmu.edu/extensions/activity_attempt_guid": "a9c203bb-6bc0-4d89-bf82-099676623a2d",
+        "http://oli.cmu.edu/extensions/activity_attempt_number": 4,
+        "http://oli.cmu.edu/extensions/activity_id": 151805,
+        "http://oli.cmu.edu/extensions/activity_revision_id": 330080,
+        "http://oli.cmu.edu/extensions/attached_objectives": [
+          145551
+        ],
+        "http://oli.cmu.edu/extensions/hints_requested": [
+          "773928740"
+        ],
+        "http://oli.cmu.edu/extensions/page_attempt_guid": "a3cd0d03-4033-4b63-b6fc-2d0c98a544f8",
+        "http://oli.cmu.edu/extensions/page_attempt_number": 1,
+        "http://oli.cmu.edu/extensions/page_id": 151862,
+        "http://oli.cmu.edu/extensions/part_attempt_guid": "5dfd26a4-6846-4fb6-afe2-fbbbd0a24e0d",
+        "http://oli.cmu.edu/extensions/part_attempt_number": 1,
+        "http://oli.cmu.edu/extensions/part_id": "1",
+        "http://oli.cmu.edu/extensions/project_id": 1299,
+        "http://oli.cmu.edu/extensions/publication_id": 5642,
+        "http://oli.cmu.edu/extensions/section_id": 1920
+      }
+    },
+    "object": {
+      "definition": {
+        "name": {
+          "en-US": "Part Attempt"
+        },
+        "type": "http://adlnet.gov/expapi/activities/question"
+      },
+      "id": "proton.oli.cmu.edu/part_attempt/5dfd26a4-6846-4fb6-afe2-fbbbd0a24e0d}",
+      "objectType": "Activity"
+    },
+    "result": {
+      "completion": true,
+      "extensions": {
+        "http://oli.cmu.edu/extensions/feedback": {
+          "content": [
+            {
+              "children": [
+                {
+                  "text": "Incorrect. Managing Essential Processing doesn't aim to reduce unnecessary mental effort or distractions. It focuses on ensuring learners focus on the most important aspects of "
+                },
+                {
+                  "em": true,
+                  "text": "the"
+                },
+                {
+                  "text": " learning material."
+                }
+              ],
+              "id": "2833770359",
+              "type": "p"
+            }
+          ],
+          "id": "1430660493"
+        }
+      },
+      "response": {
+        "files": [],
+        "input": "3232399286"
+      },
+      "score": {
+        "max": 1,
+        "min": 0,
+        "raw": 0,
+        "scaled": 0
+      },
+      "success": true
+    },
+    "timestamp": "2024-07-10T07:42:34Z",
+    "verb": {
+      "display": {
+        "en-US": "completed"
+      },
+      "id": "http://adlnet.gov/expapi/verbs/completed"
+    }
+  }
