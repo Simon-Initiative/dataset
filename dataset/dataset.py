@@ -79,7 +79,7 @@ def generate_datashop(context):
         all_results.extend(results)
 
     tutor_keys = list_keys_from_inventory(section_ids, "tutor_message", source_bucket, inventory_bucket)
-    number_of_chunks = calculate_number_of_chunks(len(tutor_keys), chunk_size)
+    tutor_number_of_chunks = calculate_number_of_chunks(len(tutor_keys), chunk_size)
 
     all_tutor_messages = []
     for chunk_index, chunk_keys in enumerate(chunkify(tutor_keys, chunk_size)):
@@ -89,7 +89,7 @@ def generate_datashop(context):
             all_tutor_messages.extend(part_attempts)
 
         except Exception as e:
-            print(f"Error processing chunk {chunk_index + 1}/{number_of_chunks}: {e}")
+            print(f"Error processing tutor chunk {chunk_index + 1}/{tutor_number_of_chunks}: {e}")
 
     partitioned_part_attempts = {}
     for part_attempt in all_tutor_messages:
@@ -103,6 +103,9 @@ def generate_datashop(context):
         
         results = process_tutor_messages(partitioned_part_attempts[key], context)
         all_results.extend(results)
+
+    # Calculate total number of chunks based on combined results
+    total_number_of_chunks = calculate_number_of_chunks(len(all_results), chunk_size)
 
     # Every XML chunk should have the <?xml ?> directive and the
     # outermost tutor_related_message_sequence element
@@ -118,19 +121,19 @@ def generate_datashop(context):
             
             # Save the collected results as an XML chunk to S3
             save_xml_chunk(chunk_data, s3_client, target_prefix, chunk_index, results_bucket_name=context["results_bucket_name"])
-            print(f"Successfully processed chunk {chunk_index + 1}/{number_of_chunks}")
+            print(f"Successfully processed chunk {chunk_index + 1}/{total_number_of_chunks}")
 
         except Exception as e:
-            print(f"Error processing chunk {chunk_index + 1}/{number_of_chunks}: {e}")
+            print(f"Error processing chunk {chunk_index + 1}/{total_number_of_chunks}: {e}")
 
     # Build and save JSON and HTML manifests, resetting the lookup so we don't preserve it
     context['lookup'] = {}
-    build_manifests(s3_client, context, number_of_chunks, "xml")
+    build_manifests(s3_client, context, total_number_of_chunks, "xml")
 
     # Stop Spark context
     sc.stop()
 
-    return number_of_chunks
+    return total_number_of_chunks
 
 
 def generate_dataset(section_ids, action, context):
