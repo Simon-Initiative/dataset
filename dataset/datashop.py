@@ -35,20 +35,101 @@ def handle_datashop(bucket_key, context, excluded_indices):
     global_context["last_good_context_message_id"] = None
 
     for line in content.splitlines():
-        # parse one line of json
-        j = json.loads(line)
+        if not line.strip():
+            continue
 
-        student_id = j["actor"]["account"]["name"]
-        project_matches = context["project_id"] is None or context["project_id"] == j["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"]
-        
-        if student_id not in context["ignored_student_ids"] and project_matches:
-            if j["object"]["definition"]["type"] == "http://adlnet.gov/expapi/activities/question":
-                o = to_xml_message(j, lookup)
-                values.append(o)
+        try:
+            # Parse JSON line
+            j = json.loads(line)
+
+            student_id = j["actor"]["account"]["name"]
+            project_matches = (context.get("project_id") is None or
+                             context.get("project_id") == j["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"])
+
+            if student_id not in context.get("ignored_student_ids", []) and project_matches:
+                # Process different types of messages
+                obj_type = j["object"]["definition"]["type"]
+
+                if obj_type == "http://adlnet.gov/expapi/activities/question":
+                    # Handle attempt_evaluated messages
+                    o = to_xml_message(j, lookup)
+                    values.append(o)
+
+                elif obj_type == "http://oli.cmu.edu/extensions/tutor_message":
+                    # Handle tutor_message messages
+                    o = process_tutor_message(j, lookup)
+                    if o:
+                        values.append(o)
+
+        except json.JSONDecodeError as e:
+            print(f"Error parsing JSON line: {e}")
+            continue
+        except Exception as e:
+            print(f"Error processing line: {e}")
+            continue
             
     return values
 
+def process_tutor_message(j, lookup):
+    """
+    Process tutor message from local XAPI data.
+    Extracts the XML content and replaces the meta element with a generated one.
+    """
+    try:
+        # Extract the message content from the XAPI JSON
+        message_content = j["result"]["message"]
 
+        message_root = ET.fromstring(message_content)
+
+        # Create context for generating new meta element
+        faux_full_context = {'lookup': lookup, 'anonymize': lookup.get('anonymize', False)}
+        user_id = determine_student_id(faux_full_context, j)
+
+        context = {
+            'user_id': user_id,
+            'session_id': f"{user_id} {j['timestamp'].replace('T', ' ').replace('Z', '')}",
+            'time': j['timestamp'],
+            'time_zone': 'GMT'
+        }
+
+        updated_xml = ""
+        for child in message_root:
+            # Find and remove existing meta element
+            existing_meta = child.find('meta')
+            if existing_meta is not None:
+                child.remove(existing_meta)
+
+            # Create new meta element using our generator
+            new_meta_xml = meta_xml(context)
+            new_meta_element = ET.fromstring(new_meta_xml)
+
+            # Insert the new meta element at the beginning
+            child.insert(0, new_meta_element)
+
+            updated_xml += ET.tostring(child, encoding='unicode')
+
+        # Clean up any escaped entities
+        cleaned_message = unescape_numeric_entities(updated_xml)
+
+        # Add proper indentation for readability
+        cleaned_message = "  " + cleaned_message.replace("\n", "\n  ")
+
+        return cleaned_message
+
+    except Exception as e:
+        print(f"Error processing tutor message: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+def meta_xml(context):
+    """Create meta XML element."""
+    return f'''<meta>
+    <user_id>{sanitize_element_text(context.get("user_id", "Unknown"))}</user_id>
+    <session_id>{sanitize_element_text(context.get("session_id", "Unknown"))}</session_id>
+    <time>{sanitize_element_text(format_time(context.get("time")))}</time>
+    <time_zone>{sanitize_element_text(context.get("time_zone", "GMT"))}</time_zone>
+    </meta>'''
 
 def process_part_attempts(part_attempts, context):
     
@@ -64,6 +145,22 @@ def process_part_attempts(part_attempts, context):
         values.append(o)
             
     return values
+
+def process_tutor_messages(part_attempts, context):
+    
+    values = []
+
+    lookup = context['lookup']
+    lookup['anonymize'] = context['anonymize']
+
+    global_context["last_good_context_message_id"] = None
+
+    for part_attempt in part_attempts:
+        o = process_tutor_message(part_attempt, lookup)
+        values.append(o)
+            
+    return values
+
 
 def process_jsonl_file(bucket_key, context, excluded_indices):
     bucket_name, key = bucket_key

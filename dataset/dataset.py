@@ -11,7 +11,7 @@ from dataset.keys import list_keys_from_inventory
 from dataset.utils import parallel_map, prune_fields
 from dataset.manifest import build_html_manifest, build_json_manifest
 from dataset.event_registry import get_event_config
-from dataset.datashop import handle_datashop, process_jsonl_file, process_part_attempts
+from dataset.datashop import handle_datashop, process_jsonl_file, process_part_attempts, process_tutor_messages
 from dataset.lookup import retrieve_lookup
 
 
@@ -78,7 +78,35 @@ def generate_datashop(context):
         results = process_part_attempts(partitioned_part_attempts[key], context)
         all_results.extend(results)
 
-    
+    tutor_keys = list_keys_from_inventory(section_ids, "tutor_message", source_bucket, inventory_bucket)
+    tutor_number_of_chunks = calculate_number_of_chunks(len(tutor_keys), chunk_size)
+
+    all_tutor_messages = []
+    for chunk_index, chunk_keys in enumerate(chunkify(tutor_keys, chunk_size)):
+        try:
+            # Process keys in parallel to 
+            part_attempts = parallel_map(sc, source_bucket, chunk_keys, process_jsonl_file, context, [])
+            all_tutor_messages.extend(part_attempts)
+
+        except Exception as e:
+            print(f"Error processing tutor chunk {chunk_index + 1}/{tutor_number_of_chunks}: {e}")
+
+    partitioned_part_attempts = {}
+    for part_attempt in all_tutor_messages:
+        key = str(part_attempt.get('section_id', '')) + "_" + str(part_attempt.get('user_id', '')) + "_" + str(part_attempt.get('session_id', ''))
+        
+        if key not in partitioned_part_attempts:
+            partitioned_part_attempts[key] = []
+        partitioned_part_attempts[key].append(part_attempt)
+
+    for key in partitioned_part_attempts:
+        
+        results = process_tutor_messages(partitioned_part_attempts[key], context)
+        all_results.extend(results)
+
+    # Calculate total number of chunks based on combined results
+    total_number_of_chunks = calculate_number_of_chunks(len(all_results), chunk_size)
+
     # Every XML chunk should have the <?xml ?> directive and the
     # outermost tutor_related_message_sequence element
     chunk_prefix =  """<?xml version= \"1.0\" encoding= \"UTF-8\"?>
@@ -93,19 +121,19 @@ def generate_datashop(context):
             
             # Save the collected results as an XML chunk to S3
             save_xml_chunk(chunk_data, s3_client, target_prefix, chunk_index, results_bucket_name=context["results_bucket_name"])
-            print(f"Successfully processed chunk {chunk_index + 1}/{number_of_chunks}")
+            print(f"Successfully processed chunk {chunk_index + 1}/{total_number_of_chunks}")
 
         except Exception as e:
-            print(f"Error processing chunk {chunk_index + 1}/{number_of_chunks}: {e}")
+            print(f"Error processing chunk {chunk_index + 1}/{total_number_of_chunks}: {e}")
 
     # Build and save JSON and HTML manifests, resetting the lookup so we don't preserve it
     context['lookup'] = {}
-    build_manifests(s3_client, context, number_of_chunks, "xml")
+    build_manifests(s3_client, context, total_number_of_chunks, "xml")
 
     # Stop Spark context
     sc.stop()
 
-    return number_of_chunks
+    return total_number_of_chunks
 
 
 def generate_dataset(section_ids, action, context):
