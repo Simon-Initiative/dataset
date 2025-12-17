@@ -18,6 +18,7 @@ if __name__ == "__main__":
     parser.add_argument("--anonymize", required=False, help="Whether to anonymize students")
     parser.add_argument("--exclude_fields", required=False, help="List of fields to exclude")
     parser.add_argument("--enforce_project_id", required=False, help="Project id to ensure the data is from this project")
+    parser.add_argument("--debug", required=False, help="Enables detailed logging for debugging purposes")
 
     args = parser.parse_args()
 
@@ -42,6 +43,8 @@ if __name__ == "__main__":
     project_id = args.enforce_project_id if args.enforce_project_id else None
     project_id = guarentee_int(project_id)
 
+    debug = args.debug == "true"
+
     context = {
         "bucket_name": bucket_name,
         "inventory_bucket_name": inventory_bucket_name,
@@ -56,6 +59,7 @@ if __name__ == "__main__":
         "exclude_fields": exclude_fields,
         "project_id": project_id,
         "anonymize": anonymize, 
+        "debug": debug
     }
 
     action = args.action
