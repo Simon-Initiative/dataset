@@ -1,5 +1,4 @@
 import json
-import logging
 import boto3
 
 from dataset.utils import prune_fields
@@ -38,15 +37,14 @@ def page_viewed_handler(bucket_key, context, excluded_indices):
                     o = from_page_viewed(j, context)
                     o = prune_fields(o, excluded_indices)
                     values.append(o)
-            except Exception:
-                logging.exception("page_viewed_handler: skipping malformed line in %s", key)
+            except Exception as exc:
+                debug_log(context, f"page_viewed_handler: skipping malformed line in {key}: {exc}")
                 continue
             
         return values
 
-    except Exception:
-        logging.exception("page_viewed_handler: failed to process %s", bucket_key)
-        debug_log(context, f"Failed to process {bucket_key}")
+    except Exception as exc:
+        debug_log(context, f"page_viewed_handler: failed to process {bucket_key}: {exc}")
         return []
         
 def from_page_viewed(value, context):
@@ -67,4 +65,3 @@ def debug_log(context, message):
     """Log a debug message if debugging is enabled in the context."""
     if context.get("debug", False):
         print(f"DEBUG: {message}")
-
