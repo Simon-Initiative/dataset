@@ -29,15 +29,18 @@ def generate_datashop(context):
     section_ids = context["section_ids"]
 
     # Retrieve matching keys from S3 inventory
+    debug_log(context, "Listing keys from inventory")
     keys = list_keys_from_inventory(section_ids, "attempt_evaluated", source_bucket, inventory_bucket)
+    
+    debug_log(context, f"Found {len(keys)} keys from inventory")
     number_of_chunks = calculate_number_of_chunks(len(keys), chunk_size)
-
-    print(f"Context: {context}")
-    print(f"Number of keys: {len(keys)}")
-    print(f"Number of chunks: {number_of_chunks}")
+    debug_log(context, f"Calculated number of chunks: {number_of_chunks}")
 
     # Retrieve the datashop lookup context
     lookup = retrieve_lookup(s3_client, context)
+
+    debug_log(context, "Retrieved lookup data")
+
     context['lookup'] = lookup
 
     
@@ -157,15 +160,16 @@ def generate_dataset(section_ids, action, context):
     columns = prune_fields(columns, excluded_indices)
 
     # Download the additional lookup information file
+    debug_log(context, "Retrieving lookup data")
     context["lookup"] = retrieve_lookup(s3_client, context)
 
     # Retrieve matching keys from S3 inventory
+    debug_log(context, "Listing keys from inventory")
     keys = list_keys_from_inventory(section_ids, action, source_bucket, inventory_bucket)
     number_of_chunks = calculate_number_of_chunks(len(keys), chunk_size)
 
-    print(f"Context: {context}")
-    print(f"Number of keys: {len(keys)}")
-    print(f"Number of chunks: {number_of_chunks}")
+    debug_log(context, f"Calculated number of chunks: {number_of_chunks}")
+    debug_log(context, f"Found {len(keys)} keys from inventory")
 
     # Process keys in chunks, serially
     for chunk_index, chunk_keys in enumerate(chunkify(keys, chunk_size)):
@@ -181,10 +185,12 @@ def generate_dataset(section_ids, action, context):
             print(f"Error processing chunk {chunk_index + 1}/{number_of_chunks}: {e}")
 
     # Build and save JSON and HTML manifests
+    debug_log(context, "Building manifests")
     context['lookup'] = {}
     build_manifests(s3_client, context, number_of_chunks, "csv")
 
     # Stop Spark context
+    debug_log(context, "Ending job, stopping Spark context")
     sc.stop()
 
     return number_of_chunks
@@ -231,5 +237,8 @@ def build_manifests(s3_client, context, number_of_chunks, extension):
     build_html_manifest(s3_client, context, number_of_chunks, extension)
     build_json_manifest(s3_client, context, number_of_chunks, extension)
 
-   
+def debug_log(context, message):
+    """Log a debug message if debugging is enabled in the context."""
+    if context.get("debug", False):
+        print(f"DEBUG: {message}")
 

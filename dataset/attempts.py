@@ -5,45 +5,59 @@ from dataset.utils import encode_array, encode_json, prune_fields
 from dataset.lookup import determine_student_id
 
 def attempts_handler(bucket_key, context, excluded_indices):
-    # Use the key to read in the file contents, split on line endings
-    bucket_name, key = bucket_key
+    """
+    Entry point for attempts extraction. Any exception is swallowed so the
+    Spark job cannot be aborted by a bad record or failed download.
+    """
+    try:
+        # Use the key to read in the file contents, split on line endings
+        bucket_name, key = bucket_key
 
-    # Create a session using the specified profile
-    s3_client = boto3.client('s3')
-    
-    response = s3_client.get_object(Bucket=bucket_name, Key=key)
+        # Create a session using the specified profile
+        s3_client = boto3.client('s3')
 
-    # Read the contents of the file
-    content = response['Body'].read().decode('utf-8')
+        response = s3_client.get_object(Bucket=bucket_name, Key=key)
 
-    values = []
+        # Read the contents of the file
+        content = response['Body'].read().decode('utf-8')
 
-    subtypes = context["sub_types"]
-    
-    for line in content.splitlines():
-        # parse one line of json
-        j = json.loads(line)
+        values = []
 
-        student_id = j["actor"]["account"]["name"]
-        project_matches = context["project_id"] is None or context["project_id"] == j["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"]
-        page_matches = context["page_ids"] is None or j["context"]["extensions"]["http://oli.cmu.edu/extensions/page_id"] in context["page_ids"]
-        
-        if student_id not in context["ignored_student_ids"] and project_matches and page_matches:
-            if (("part_attempt_evaluated" in subtypes) or ("part_attempt_evaluted" in subtypes)) and j["object"]["definition"]["type"] == "http://adlnet.gov/expapi/activities/question":
-                o = from_part_attempt(j, context)
-                o = prune_fields(o, excluded_indices)
-                values.append(o)
-            elif "activity_attempt_evaluated" in subtypes and j["object"]["definition"]["type"] == "http://oli.cmu.edu/extensions/activity_attempt":
-                o = from_activity_attempt(j, context)
-                o = prune_fields(o, excluded_indices)
-                values.append(o)
-            elif (("page_attempt_evaluated" in subtypes) or ("page_attempt_evaluted" in subtypes)) and j["object"]["definition"]["type"] == "http://oli.cmu.edu/extensions/page_attempt":
-                o = from_page_attempt(j, context)
-                o = prune_fields(o, excluded_indices)
-                values.append(o)
+        subtypes = context["sub_types"]
 
-        
-    return values
+        for line in content.splitlines():
+            if not line.strip():
+                continue
+            try:
+                # parse one line of json
+                j = json.loads(line)
+
+                student_id = j["actor"]["account"]["name"]
+                project_matches = context["project_id"] is None or context["project_id"] == j["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"]
+                page_matches = context["page_ids"] is None or j["context"]["extensions"]["http://oli.cmu.edu/extensions/page_id"] in context["page_ids"]
+
+                if student_id not in context["ignored_student_ids"] and project_matches and page_matches:
+                    if (("part_attempt_evaluated" in subtypes) or ("part_attempt_evaluted" in subtypes)) and j["object"]["definition"]["type"] == "http://adlnet.gov/expapi/activities/question":
+                        o = from_part_attempt(j, context)
+                        o = prune_fields(o, excluded_indices)
+                        values.append(o)
+                    elif "activity_attempt_evaluated" in subtypes and j["object"]["definition"]["type"] == "http://oli.cmu.edu/extensions/activity_attempt":
+                        o = from_activity_attempt(j, context)
+                        o = prune_fields(o, excluded_indices)
+                        values.append(o)
+                    elif (("page_attempt_evaluated" in subtypes) or ("page_attempt_evaluted" in subtypes)) and j["object"]["definition"]["type"] == "http://oli.cmu.edu/extensions/page_attempt":
+                        o = from_page_attempt(j, context)
+                        o = prune_fields(o, excluded_indices)
+                        values.append(o)
+            except Exception as exc:
+                debug_log(context, f"attempts_handler: skipping malformed line in {key}: {exc}")
+                continue
+
+        return values
+
+    except Exception as exc:
+        debug_log(context, f"attempts_handler: failed to process {bucket_key}: {exc}")
+        return []
         
 
 def from_part_attempt(value, context):
@@ -123,3 +137,9 @@ def from_page_attempt(value, context):
         None, #feedback
         None
     ]
+
+
+def debug_log(context, message):
+    """Log a debug message if debugging is enabled in the context."""
+    if context.get("debug", False):
+        print(f"DEBUG: {message}")

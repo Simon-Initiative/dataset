@@ -4,54 +4,68 @@ import boto3
 from dataset.utils import prune_fields
 from dataset.lookup import determine_student_id
 
+
 def video_handler(bucket_key, context, excluded_indices):
-    # Use the key to read in the file contents, split on line endings
-    bucket_name, key = bucket_key
+    """
+    Entry point for video events extraction. Never raise to keep Spark job alive.
+    """
+    try:
+        # Use the key to read in the file contents, split on line endings
+        bucket_name, key = bucket_key
 
-    # Create a session using the specified profile
-    s3_client = boto3.client('s3')
-    
-    response = s3_client.get_object(Bucket=bucket_name, Key=key)
+        # Create a session using the specified profile
+        s3_client = boto3.client('s3')
 
-    # Read the contents of the file
-    content = response['Body'].read().decode('utf-8')
+        response = s3_client.get_object(Bucket=bucket_name, Key=key)
 
-    values = []
+        # Read the contents of the file
+        content = response['Body'].read().decode('utf-8')
 
-    subtypes = context["sub_types"]
-    
-    for line in content.splitlines():
-        # parse one line of json
-        j = json.loads(line)
+        values = []
 
-        student_id = j["actor"]["account"]["name"]
-        short_verb = j["verb"]["display"]["en-US"]    
+        subtypes = context["sub_types"]
 
-        project_matches = context["project_id"] is None or context["project_id"] == j["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"]
-        page_matches = context["page_ids"] is None or j["context"]["extensions"]["http://oli.cmu.edu/extensions/resource_id"] in context["page_ids"]
+        for line in content.splitlines():
+            if not line.strip():
+                continue
+            try:
+                # parse one line of json
+                j = json.loads(line)
 
-        if student_id not in context["ignored_student_ids"] and project_matches and page_matches:
-            if short_verb in subtypes:
-                if short_verb == "played":
-                    o = from_played(j, context)
-                    o = prune_fields(o, excluded_indices)
-                    values.append(o)
-                elif short_verb == "paused":
-                    o = from_paused(j, context)
-                    o = prune_fields(o, excluded_indices)
-                    values.append(o)
-                elif short_verb == "seeked":
-                    o = from_seeked(j, context)
-                    o = prune_fields(o, excluded_indices)
-                    values.append(o)
-                elif short_verb == "completed":
-                    o = from_completed(j, context)
-                    o = prune_fields(o, excluded_indices)
-                    values.append(o)
-            
-        
-    return values
-        
+                student_id = j["actor"]["account"]["name"]
+                short_verb = j["verb"]["display"]["en-US"]
+
+                project_matches = context["project_id"] is None or context["project_id"] == j["context"]["extensions"]["http://oli.cmu.edu/extensions/project_id"]
+                page_matches = context["page_ids"] is None or j["context"]["extensions"]["http://oli.cmu.edu/extensions/resource_id"] in context["page_ids"]
+
+                if student_id not in context["ignored_student_ids"] and project_matches and page_matches:
+                    if short_verb in subtypes:
+                        if short_verb == "played":
+                            o = from_played(j, context)
+                            o = prune_fields(o, excluded_indices)
+                            values.append(o)
+                        elif short_verb == "paused":
+                            o = from_paused(j, context)
+                            o = prune_fields(o, excluded_indices)
+                            values.append(o)
+                        elif short_verb == "seeked":
+                            o = from_seeked(j, context)
+                            o = prune_fields(o, excluded_indices)
+                            values.append(o)
+                        elif short_verb == "completed":
+                            o = from_completed(j, context)
+                            o = prune_fields(o, excluded_indices)
+                            values.append(o)
+            except Exception as exc:
+                debug_log(context, f"video_handler: skipping malformed line in {key}: {exc}")
+                continue
+
+        return values
+
+    except Exception as exc:
+        debug_log(context, f"video_handler: failed to process {bucket_key}: {exc}")
+        return []
+
 
 def from_played(value, context):
     return [
@@ -74,6 +88,7 @@ def from_played(value, context):
         None
     ]
 
+
 def from_paused(value, context):
     return [
         "paused",
@@ -94,6 +109,7 @@ def from_paused(value, context):
         value["result"]["extensions"]["https://w3id.org/xapi/video/extensions/played-segments"],
         value["result"]["extensions"]["https://w3id.org/xapi/video/extensions/progress"]
     ]
+
 
 def from_seeked(value, context):
     return [
@@ -116,6 +132,7 @@ def from_seeked(value, context):
         None
     ]
 
+
 def from_completed(value, context):
     return [
         "completed",
@@ -136,3 +153,9 @@ def from_completed(value, context):
         value["result"]["extensions"]["https://w3id.org/xapi/video/extensions/played-segments"],
         value["result"]["extensions"]["https://w3id.org/xapi/video/extensions/progress"]
     ]
+
+
+def debug_log(context, message):
+    """Log a debug message if debugging is enabled in the context."""
+    if context.get("debug", False):
+        print(f"DEBUG: {message}")
