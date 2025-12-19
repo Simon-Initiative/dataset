@@ -53,13 +53,11 @@ class TestKeys(unittest.TestCase):
         mock_s3_client.get_object.side_effect = Exception("S3 Error")
         mock_boto_client.return_value = mock_s3_client
         
-        result = list_keys_from_inventory(
-            self.section_ids, self.action,
-            self.inventory_bucket_name, self.bucket_name
-        )
-        
-        # Should return empty list on exception
-        self.assertEqual(result, [])
+        with self.assertRaises(FileNotFoundError):
+            list_keys_from_inventory(
+                self.section_ids, self.action,
+                self.inventory_bucket_name, self.bucket_name
+            )
 
     @patch('boto3.client')
     def test_get_most_recent_manifest_yesterday(self, mock_boto_client):
