@@ -15,8 +15,11 @@ def list_keys_from_inventory(section_ids, action, inventoried_bucket_name, bucke
     s3_client = boto3.client('s3')
     
     try:        
-        # Read the JSON contents of the most created inventory manifest file
+        # Read the JSON contents of the most recent inventory manifest file
         manifest_json = get_most_recent_manifest(inventoried_bucket_name, bucket_name)
+
+        if manifest_json is None:
+            raise FileNotFoundError("No inventory manifest found in the last two days")
 
         # Iterate over the Parquet files in the manifest, fetching and reading each one
         # to get the list of keys, and filtering them based on the section IDs and action
@@ -28,6 +31,9 @@ def list_keys_from_inventory(section_ids, action, inventoried_bucket_name, bucke
             
         return all
         
+    except FileNotFoundError:
+        # Bubble up so the job fails loudly instead of silently returning no data
+        raise
     except Exception as e:
         print(e)
         return []
@@ -38,9 +44,11 @@ def list_keys_from_inventory(section_ids, action, inventoried_bucket_name, bucke
 # The time lag is due to the fact that the inventory files in AWS are generated once a day.
 def get_most_recent_manifest(inventoried_bucket_name, bucket_name):
     
-    for i in range(1, 2):
+    attempted_keys = []
+    for i in range(1, 3):  # yesterday, then two days ago
         day = (datetime.datetime.utcnow() - datetime.timedelta(days=i)).strftime('%Y-%m-%dT01-00Z')
         manifest_key = f'{inventoried_bucket_name}/{bucket_name}/{day}/manifest.json'
+        attempted_keys.append(manifest_key)
         
         try:
             s3_client = boto3.client('s3')
@@ -52,6 +60,8 @@ def get_most_recent_manifest(inventoried_bucket_name, bucket_name):
         except Exception as e:
             print(e)
             continue
+    
+    raise FileNotFoundError(f"No inventory manifest found for keys: {attempted_keys}")
     
     
 def fetch_parquet(section_ids, action, s3_client, bucket_name, key):
@@ -113,4 +123,3 @@ def list_keys(bucket_name, section_id, action):
             break
             
     return files
-
