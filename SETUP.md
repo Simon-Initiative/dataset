@@ -12,6 +12,29 @@ Deploy `job.py` and `dataset.zip` into locations into locations in S3.  The `dep
 A custom image must be created and published to the Amazon Elastic Container Registry. 
 Build the docker image to capture all necessary EMR dependencies using `config/Dockerfile` via `config/update_image.sh`.  Note: `config/update.sh` contains OLI specific details, customize this is deploying to a different environment.
  
+## Create an IAM Role for EMR execution
+
+Grant it the following permission policies:
+- AmazonEC2ContainerRegistryReadOnly
+- AmazonS3FullAccess
+- ECR-ALL
+
+Where ECR-ALL is a customer managed policy:
+
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": "ecr:*",
+            "Resource": "*"
+        }
+    ]
+}
+```
+
 
 ## Create EMR Serverless Application
 
